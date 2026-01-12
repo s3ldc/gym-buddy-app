@@ -9,14 +9,11 @@ export default function LoginScreen() {
 
 const signIn = async () => {
   setLoading(true);
-  console.log("LOGIN ATTEMPT", email);
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
-
-  console.log("LOGIN RESULT:", { data, error });
 
   if (error) {
     alert(error.message);

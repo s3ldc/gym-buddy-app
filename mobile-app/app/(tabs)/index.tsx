@@ -3,35 +3,53 @@ import { useState } from "react";
 import AvailabilityToggle from "../../components/AvailabilityToggle";
 import { useLocation } from "../../hooks/useLocation";
 import { upsertAvailability } from "../../services/availability";
+import { getMyAvailability } from "../../services/availability";
+import { useEffect } from "react";
 
 export default function HomeScreen() {
   const [available, setAvailable] = useState(false);
   const { location, loading, error } = useLocation();
 
+  useEffect(() => {
+    const restoreAvailability = async () => {
+      try {
+        const activeAvailability = await getMyAvailability();
+
+        if (activeAvailability) {
+          setAvailable(true);
+          console.log("RESTORED AVAILABILITY");
+        } else {
+          setAvailable(false);
+          console.log("NO ACTIVE AVAILABILITY");
+        }
+      } catch (err) {
+        console.error("FAILED TO RESTORE AVAILABILITY", err);
+      }
+    };
+
+    restoreAvailability();
+  }, []);
+
   const handleAvailabilityChange = async (value: boolean) => {
-  console.log("TOGGLE:", value);
-  setAvailable(value);
+    setAvailable(value);
 
-  if (!location) {
-    console.log("NO LOCATION — aborting");
-    return;
-  }
+    if (!location) {
+      console.log("NO LOCATION — aborting");
+      return;
+    }
 
-  try {
-    await upsertAvailability({
-      status: value,
-      available_at: "now",
-      latitude: location.latitude,
-      longitude: location.longitude,
-      radius_km: 3,
-    });
-
-    console.log("AVAILABILITY SAVED");
-  } catch (err) {
-    console.error("FAILED TO SAVE AVAILABILITY:", err);
-  }
-};
-
+    try {
+      await upsertAvailability({
+        status: value,
+        available_at: "now",
+        latitude: location.latitude,
+        longitude: location.longitude,
+        radius_km: 3,
+      });
+    } catch (err) {
+      console.error("FAILED TO SAVE AVAILABILITY:", err);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -48,8 +66,7 @@ export default function HomeScreen() {
       {error && <Text style={{ color: "red" }}>{error}</Text>}
       {location && (
         <Text>
-          {location.latitude.toFixed(3)},{" "}
-          {location.longitude.toFixed(3)}
+          {location.latitude.toFixed(3)}, {location.longitude.toFixed(3)}
         </Text>
       )}
     </View>
