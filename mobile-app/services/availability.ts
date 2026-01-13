@@ -17,7 +17,8 @@ export async function upsertAvailability(payload: {
   latitude: number;
   longitude: number;
   radius_km: number;
-  expires_at: string;
+  expires_at?: string;
+  workout_type?: string;
 }) {
   const {
     data: { session },

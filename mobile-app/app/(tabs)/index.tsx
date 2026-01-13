@@ -10,7 +10,6 @@ import { supabase } from "../../lib/supabase";
 import { getNearbyAvailabilities } from "../../services/discovery";
 import { formatDistance } from "../../utils/distance";
 
-
 export default function HomeScreen() {
   const [available, setAvailable] = useState(false);
   const { location, loading, error } = useLocation();
@@ -81,13 +80,11 @@ export default function HomeScreen() {
     try {
       await upsertAvailability({
         status: value,
-        available_at: value ? "now" : "off",
+        available_at: "now",
         latitude: location.latitude,
         longitude: location.longitude,
         radius_km: 3,
-        expires_at: value
-          ? new Date(Date.now() + 30 * 60 * 1000).toISOString() // +30 min
-          : new Date().toISOString(), // expire immediately
+        workout_type: "mixed",
       });
 
       if (value) {
@@ -140,7 +137,11 @@ export default function HomeScreen() {
           {nearbyUsers.map((user) => (
             <View key={user.user_id} style={styles.card}>
               <Text style={{ fontWeight: "600" }}>Available now</Text>
+
               <Text>{formatDistance(user.distanceKm)}</Text>
+
+              {user.workout_type && <Text>Workout: {user.workout_type}</Text>}
+
               <Text>Radius: {user.radius_km} km</Text>
             </View>
           ))}
