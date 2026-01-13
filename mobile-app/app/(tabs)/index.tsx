@@ -16,33 +16,33 @@ export default function HomeScreen() {
   const [loadingNearby, setLoadingNearby] = useState(false);
 
   // Restore availability on app load
-useEffect(() => {
-  const restoreAvailability = async () => {
-    try {
-      const activeAvailability = await getMyAvailability();
+  useEffect(() => {
+    const restoreAvailability = async () => {
+      try {
+        const activeAvailability = await getMyAvailability();
 
-      if (activeAvailability) {
-        setAvailable(true);
-      } else {
-        setAvailable(false);
+        if (activeAvailability) {
+          setAvailable(true);
+        } else {
+          setAvailable(false);
 
-        // 🔴 FORCE CLEANUP OF STALE TRUE STATUS
-        await upsertAvailability({
-          status: false,
-          available_at: "expired",
-          latitude: location?.latitude ?? 0,
-          longitude: location?.longitude ?? 0,
-          radius_km: 3,
-          expires_at: new Date().toISOString(),
-        });
+          // 🔴 FORCE CLEANUP OF STALE TRUE STATUS
+          await upsertAvailability({
+            status: false,
+            available_at: "expired",
+            latitude: location?.latitude ?? 0,
+            longitude: location?.longitude ?? 0,
+            radius_km: 3,
+            expires_at: new Date().toISOString(),
+          });
+        }
+      } catch (err) {
+        console.error("FAILED TO RESTORE AVAILABILITY", err);
       }
-    } catch (err) {
-      console.error("FAILED TO RESTORE AVAILABILITY", err);
-    }
-  };
+    };
 
-  restoreAvailability();
-}, []);
+    restoreAvailability();
+  }, []);
 
   // Fetch nearby users
   const fetchNearby = async () => {
@@ -136,7 +136,8 @@ useEffect(() => {
 
           {nearbyUsers.map((user) => (
             <View key={user.user_id} style={styles.card}>
-              <Text>User nearby</Text>
+              <Text style={{ fontWeight: "600" }}>Available now</Text>
+              <Text>~{user.distanceKm} km away</Text>
               <Text>Radius: {user.radius_km} km</Text>
             </View>
           ))}

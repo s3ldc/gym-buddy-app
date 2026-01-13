@@ -24,14 +24,17 @@ export async function getNearbyAvailabilities(
 
   if (!data) return [];
 
-  return data.filter(item => {
-    const distance = getDistanceKm(
-      myLat,
-      myLng,
-      item.latitude,
-      item.longitude
-    );
+return data.map(item => {
+  const distance = getDistanceKm(
+    myLat,
+    myLng,
+    item.latitude,
+    item.longitude
+  );
 
-    return distance <= item.radius_km;
-  });
+  return {
+    ...item,
+    distanceKm: Math.round(distance * 10) / 10, // 1 decimal
+  };
+}).filter(item => item.distanceKm <= item.radius_km);
 }
