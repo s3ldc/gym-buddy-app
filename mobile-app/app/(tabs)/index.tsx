@@ -15,27 +15,46 @@ export default function HomeScreen() {
   const { location, loading, error } = useLocation();
   const [nearbyUsers, setNearbyUsers] = useState<any[]>([]);
   const [loadingNearby, setLoadingNearby] = useState(false);
+  const [workoutFilter, setWorkoutFilter] = useState<
+    "all" | "strength" | "cardio" | "mixed"
+  >("all");
+  const filteredUsers =
+    workoutFilter === "all"
+      ? nearbyUsers
+      : nearbyUsers.filter((u) => u.workout_type === workoutFilter);
 
   // Restore availability on app load
   useEffect(() => {
+    if (!location) return;
+
     const restoreAvailability = async () => {
       try {
-        const activeAvailability = await getMyAvailability();
+        const row = await getMyAvailability();
 
-        if (activeAvailability) {
+        if (!row) {
+          setAvailable(false);
+          return;
+        }
+
+        const isExpired = new Date(row.expires_at) < new Date();
+
+        if (row.status && !isExpired) {
+          // ✅ Active availability
           setAvailable(true);
         } else {
+          // 🔴 Expired or inactive → reconcile DB + UI
           setAvailable(false);
 
-          // 🔴 FORCE CLEANUP OF STALE TRUE STATUS
-          await upsertAvailability({
-            status: false,
-            available_at: "expired",
-            latitude: location?.latitude ?? 0,
-            longitude: location?.longitude ?? 0,
-            radius_km: 3,
-            expires_at: new Date().toISOString(),
-          });
+          if (row.status && isExpired) {
+            await upsertAvailability({
+              status: false,
+              available_at: "expired",
+              latitude: location.latitude,
+              longitude: location.longitude,
+              radius_km: row.radius_km,
+              expires_at: new Date().toISOString(),
+            });
+          }
         }
       } catch (err) {
         console.error("FAILED TO RESTORE AVAILABILITY", err);
@@ -43,7 +62,7 @@ export default function HomeScreen() {
     };
 
     restoreAvailability();
-  }, []);
+  }, [location]);
 
   // Fetch nearby users
   const fetchNearby = async () => {
@@ -126,6 +145,16 @@ export default function HomeScreen() {
       {/* ✅ SHOW DISCOVERY ONLY WHEN AVAILABLE */}
       {available && (
         <>
+          <View style={styles.filterRow}>
+            {["all", "strength", "cardio", "mixed"].map((type) => (
+              <Button
+                key={type}
+                title={type}
+                onPress={() => setWorkoutFilter(type as any)}
+              />
+            ))}
+          </View>
+
           <Text style={styles.sectionTitle}>Nearby Gym Partners</Text>
 
           {loadingNearby && <Text>Finding partners...</Text>}
@@ -134,7 +163,7 @@ export default function HomeScreen() {
             <Text style={{ marginTop: 8 }}>No one nearby right now.</Text>
           )}
 
-          {nearbyUsers.map((user) => {
+          {filteredUsers.map((user) => {
             console.log("NEARBY USER DATA:", user);
 
             return (
@@ -174,5 +203,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     width: "100%",
+  },
+  filterRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 16,
   },
 });
