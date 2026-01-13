@@ -130,15 +130,22 @@ export default function HomeScreen() {
       <Text style={{ marginTop: 16, fontWeight: "600" }}>Workout Type</Text>
 
       <View style={styles.selectorRow}>
-        {["strength", "cardio", "mixed"].map((type) => (
-          <Button
-            key={type}
-            title={type}
-            onPress={() => setSelectedWorkout(type as any)}
-            disabled={!available}
-            color={selectedWorkout === type ? "#007AFF" : undefined}
-          />
-        ))}
+        {["strength", "cardio", "mixed"].map((type) => {
+          const selected = selectedWorkout === type;
+
+          return (
+            <Text
+              key={type}
+              onPress={() => setSelectedWorkout(type as any)}
+              style={[
+                styles.selectorChip,
+                selected && styles.selectorChipSelected,
+              ]}
+            >
+              {type.toUpperCase()}
+            </Text>
+          );
+        })}
       </View>
 
       <AvailabilityToggle
@@ -223,9 +230,30 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 16,
   },
+  selectorTitle: {
+    marginTop: 16,
+    fontWeight: "600",
+  },
+
   selectorRow: {
     flexDirection: "row",
-    gap: 8,
-    marginVertical: 8,
+    gap: 10,
+    marginVertical: 10,
+  },
+
+  selectorChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    color: "#333",
+    overflow: "hidden",
+  },
+
+  selectorChipSelected: {
+    backgroundColor: "#007AFF",
+    borderColor: "#007AFF",
+    color: "#fff",
   },
 });
