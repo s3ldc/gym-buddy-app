@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase";
 export default function RootLayout() {
   const [session, setSession] = useState<any>(null);
   const [hasSeenWelcome, setHasSeenWelcome] = useState<boolean | null>(null);
-  console.log("hasSeenWelcome:", hasSeenWelcome);
+  // console.log("hasSeenWelcome:", hasSeenWelcome);
 
 
   useEffect(() => {

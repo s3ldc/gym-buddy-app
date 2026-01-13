@@ -63,17 +63,19 @@ export default function HomeScreen() {
     try {
       await upsertAvailability({
         status: value,
-        available_at: "now",
+        available_at: value ? "now" : "off",
         latitude: location.latitude,
         longitude: location.longitude,
         radius_km: 3,
+        expires_at: value
+          ? new Date(Date.now() + 30 * 60 * 1000).toISOString() // +30 min
+          : new Date().toISOString(), // expire immediately
       });
 
-      // ✅ REFRESH NEARBY AFTER TOGGLE
       if (value) {
         fetchNearby();
       } else {
-        setNearbyUsers([]); // hide when unavailable
+        setNearbyUsers([]);
       }
     } catch (err) {
       console.error("FAILED TO SAVE AVAILABILITY:", err);
@@ -109,16 +111,12 @@ export default function HomeScreen() {
       {/* ✅ SHOW DISCOVERY ONLY WHEN AVAILABLE */}
       {available && (
         <>
-          <Text style={styles.sectionTitle}>
-            Nearby Gym Partners
-          </Text>
+          <Text style={styles.sectionTitle}>Nearby Gym Partners</Text>
 
           {loadingNearby && <Text>Finding partners...</Text>}
 
           {!loadingNearby && nearbyUsers.length === 0 && (
-            <Text style={{ marginTop: 8 }}>
-              No one nearby right now.
-            </Text>
+            <Text style={{ marginTop: 8 }}>No one nearby right now.</Text>
           )}
 
           {nearbyUsers.map((user) => (
