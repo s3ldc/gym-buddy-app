@@ -1,30 +1,23 @@
-import { View, Text, StyleSheet } from "react-native";
-import { useState } from "react";
+import { View, Text, StyleSheet, Button } from "react-native";
+import { useEffect, useState } from "react";
 import AvailabilityToggle from "../../components/AvailabilityToggle";
 import { useLocation } from "../../hooks/useLocation";
-import { upsertAvailability } from "../../services/availability";
-import { getMyAvailability } from "../../services/availability";
-import { useEffect } from "react";
-import { Button } from "react-native";
+import {
+  upsertAvailability,
+  getMyAvailability,
+} from "../../services/availability";
 import { supabase } from "../../lib/supabase";
-
 
 export default function HomeScreen() {
   const [available, setAvailable] = useState(false);
   const { location, loading, error } = useLocation();
 
+  // Restore availability on app load
   useEffect(() => {
     const restoreAvailability = async () => {
       try {
         const activeAvailability = await getMyAvailability();
-
-        if (activeAvailability) {
-          setAvailable(true);
-          console.log("RESTORED AVAILABILITY");
-        } else {
-          setAvailable(false);
-          console.log("NO ACTIVE AVAILABILITY");
-        }
+        setAvailable(!!activeAvailability);
       } catch (err) {
         console.error("FAILED TO RESTORE AVAILABILITY", err);
       }
@@ -33,6 +26,7 @@ export default function HomeScreen() {
     restoreAvailability();
   }, []);
 
+  // Toggle availability
   const handleAvailabilityChange = async (value: boolean) => {
     setAvailable(value);
 
@@ -54,9 +48,16 @@ export default function HomeScreen() {
     }
   };
 
+  // Logout
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.text}>Home</Text>
+
+      <Button title="Logout" onPress={handleLogout} />
 
       <AvailabilityToggle
         value={available}
