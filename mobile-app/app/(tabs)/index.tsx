@@ -5,8 +5,10 @@ import { useLocation } from "../../hooks/useLocation";
 import {
   upsertAvailability,
   getMyAvailability,
+  
 } from "../../services/availability";
 import { supabase } from "../../lib/supabase";
+import { getNearbyAvailabilities } from "../../services/discovery";
 
 export default function HomeScreen() {
   const [available, setAvailable] = useState(false);
@@ -25,6 +27,23 @@ export default function HomeScreen() {
 
     restoreAvailability();
   }, []);
+
+useEffect(() => {
+  if (!location) return;
+
+  const fetchNearby = async () => {
+    const users = await getNearbyAvailabilities(
+      location.latitude,
+      location.longitude
+    );
+
+    console.log("NEARBY MATCHES:", users);
+  };
+
+  fetchNearby();
+}, [location]);
+
+
 
   // Toggle availability
   const handleAvailabilityChange = async (value: boolean) => {
