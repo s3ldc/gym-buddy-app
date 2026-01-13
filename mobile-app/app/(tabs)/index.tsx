@@ -22,6 +22,7 @@ export default function HomeScreen() {
     workoutFilter === "all"
       ? nearbyUsers
       : nearbyUsers.filter((u) => u.workout_type === workoutFilter);
+  const [restoring, setRestoring] = useState(true);
 
   // Restore availability on app load
   useEffect(() => {
@@ -33,31 +34,14 @@ export default function HomeScreen() {
 
         if (!row) {
           setAvailable(false);
-          return;
-        }
-
-        const isExpired = new Date(row.expires_at) < new Date();
-
-        if (row.status && !isExpired) {
-          // ✅ Active availability
-          setAvailable(true);
         } else {
-          // 🔴 Expired or inactive → reconcile DB + UI
-          setAvailable(false);
-
-          if (row.status && isExpired) {
-            await upsertAvailability({
-              status: false,
-              available_at: "expired",
-              latitude: location.latitude,
-              longitude: location.longitude,
-              radius_km: row.radius_km,
-              expires_at: new Date().toISOString(),
-            });
-          }
+          const isExpired = new Date(row.expires_at) < new Date();
+          setAvailable(row.status && !isExpired);
         }
       } catch (err) {
         console.error("FAILED TO RESTORE AVAILABILITY", err);
+      } finally {
+        setRestoring(false);
       }
     };
 
@@ -97,13 +81,18 @@ export default function HomeScreen() {
     if (!location) return;
 
     try {
+      const expiresAt = value
+        ? new Date(Date.now() + 30 * 60 * 1000).toISOString()
+        : new Date().toISOString();
+
       await upsertAvailability({
         status: value,
-        available_at: "now",
+        available_at: value ? "now" : "off",
         latitude: location.latitude,
         longitude: location.longitude,
         radius_km: 3,
         workout_type: "mixed",
+        expires_at: expiresAt,
       });
 
       if (value) {
@@ -120,6 +109,14 @@ export default function HomeScreen() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
+
+  if (restoring) {
+    return (
+      <View style={styles.container}>
+        <Text>Restoring availability…</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
