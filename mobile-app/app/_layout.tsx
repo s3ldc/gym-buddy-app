@@ -1,15 +1,19 @@
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../lib/supabase";
 
 export default function RootLayout() {
   const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [hasSeenWelcome, setHasSeenWelcome] = useState<boolean | null>(null);
 
   useEffect(() => {
+    AsyncStorage.getItem("hasSeenWelcome").then(value => {
+      setHasSeenWelcome(value === "true");
+    });
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      setLoading(false);
     });
 
     const {
@@ -21,23 +25,13 @@ export default function RootLayout() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) {
-    return null;
-  }
+  if (hasSeenWelcome === null) return null;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      {/* Login screen */}
-      <Stack.Screen
-        name="login"
-        redirect={!!session}
-      />
-
-      {/* App after login */}
-      <Stack.Screen
-        name="(tabs)"
-        redirect={!session}
-      />
+      {!hasSeenWelcome && <Stack.Screen name="welcome" />}
+      {hasSeenWelcome && !session && <Stack.Screen name="login" />}
+      {hasSeenWelcome && session && <Stack.Screen name="(tabs)" />}
     </Stack>
   );
 }

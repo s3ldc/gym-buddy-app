@@ -5,6 +5,9 @@ import { useLocation } from "../../hooks/useLocation";
 import { upsertAvailability } from "../../services/availability";
 import { getMyAvailability } from "../../services/availability";
 import { useEffect } from "react";
+import { Button } from "react-native";
+import { supabase } from "../../lib/supabase";
+
 
 export default function HomeScreen() {
   const [available, setAvailable] = useState(false);
