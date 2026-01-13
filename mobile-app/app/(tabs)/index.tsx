@@ -8,6 +8,8 @@ import {
 } from "../../services/availability";
 import { supabase } from "../../lib/supabase";
 import { getNearbyAvailabilities } from "../../services/discovery";
+import { formatDistance } from "../../utils/distance";
+
 
 export default function HomeScreen() {
   const [available, setAvailable] = useState(false);
@@ -53,7 +55,8 @@ export default function HomeScreen() {
 
       const users = await getNearbyAvailabilities(
         location.latitude,
-        location.longitude
+        location.longitude,
+        3 // your current radius
       );
 
       setNearbyUsers(users);
@@ -137,7 +140,7 @@ export default function HomeScreen() {
           {nearbyUsers.map((user) => (
             <View key={user.user_id} style={styles.card}>
               <Text style={{ fontWeight: "600" }}>Available now</Text>
-              <Text>~{user.distanceKm} km away</Text>
+              <Text>{formatDistance(user.distanceKm)}</Text>
               <Text>Radius: {user.radius_km} km</Text>
             </View>
           ))}
