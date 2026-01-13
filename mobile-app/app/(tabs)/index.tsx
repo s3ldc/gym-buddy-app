@@ -166,14 +166,25 @@ export default function HomeScreen() {
       {/* ✅ SHOW DISCOVERY ONLY WHEN AVAILABLE */}
       {available && (
         <>
+          <Text style={styles.selectorTitle}>Filter by Workout</Text>
+
           <View style={styles.filterRow}>
-            {["all", "strength", "cardio", "mixed"].map((type) => (
-              <Button
-                key={type}
-                title={type}
-                onPress={() => setWorkoutFilter(type as any)}
-              />
-            ))}
+            {["all", "strength", "cardio", "mixed"].map((type) => {
+              const selected = workoutFilter === type;
+
+              return (
+                <Text
+                  key={type}
+                  onPress={() => setWorkoutFilter(type as any)}
+                  style={[
+                    styles.filterChip,
+                    selected && styles.filterChipSelected,
+                  ]}
+                >
+                  {type.toUpperCase()}
+                </Text>
+              );
+            })}
           </View>
 
           <Text style={styles.sectionTitle}>Nearby Gym Partners</Text>
@@ -230,6 +241,22 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 16,
   },
+  filterChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    color: "#333",
+    overflow: "hidden",
+  },
+
+  filterChipSelected: {
+    backgroundColor: "#34C759", // green to differentiate from selector
+    borderColor: "#34C759",
+    color: "#fff",
+  },
+
   selectorTitle: {
     marginTop: 16,
     fontWeight: "600",
