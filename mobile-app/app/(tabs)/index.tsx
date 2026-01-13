@@ -126,20 +126,25 @@ export default function HomeScreen() {
       <Text style={styles.text}>Home</Text>
 
       <Button title="Logout" onPress={handleLogout} />
-
-      <Text style={{ marginTop: 16, fontWeight: "600" }}>Workout Type</Text>
+      <Text style={styles.selectorTitle}>Workout Type</Text>
 
       <View style={styles.selectorRow}>
         {["strength", "cardio", "mixed"].map((type) => {
           const selected = selectedWorkout === type;
+          const locked = available; // 🔒 lock when availability is ON
 
           return (
             <Text
               key={type}
-              onPress={() => setSelectedWorkout(type as any)}
+              onPress={() => {
+                if (!locked) {
+                  setSelectedWorkout(type as any);
+                }
+              }}
               style={[
                 styles.selectorChip,
                 selected && styles.selectorChipSelected,
+                locked && !selected && styles.selectorChipDisabled,
               ]}
             >
               {type.toUpperCase()}
@@ -283,4 +288,8 @@ const styles = StyleSheet.create({
     borderColor: "#007AFF",
     color: "#fff",
   },
+  
+selectorChipDisabled: {
+  opacity: 0.35,
+},
 });
