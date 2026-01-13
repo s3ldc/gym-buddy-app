@@ -1,11 +1,10 @@
-import { View, Text, StyleSheet, Button } from "react-native";
+import { View, Text, StyleSheet, Button, ScrollView } from "react-native";
 import { useEffect, useState } from "react";
 import AvailabilityToggle from "../../components/AvailabilityToggle";
 import { useLocation } from "../../hooks/useLocation";
 import {
   upsertAvailability,
   getMyAvailability,
-  
 } from "../../services/availability";
 import { supabase } from "../../lib/supabase";
 import { getNearbyAvailabilities } from "../../services/discovery";
@@ -13,6 +12,8 @@ import { getNearbyAvailabilities } from "../../services/discovery";
 export default function HomeScreen() {
   const [available, setAvailable] = useState(false);
   const { location, loading, error } = useLocation();
+  const [nearbyUsers, setNearbyUsers] = useState<any[]>([]);
+  const [loadingNearby, setLoadingNearby] = useState(false);
 
   // Restore availability on app load
   useEffect(() => {
@@ -28,31 +29,36 @@ export default function HomeScreen() {
     restoreAvailability();
   }, []);
 
-useEffect(() => {
-  if (!location) return;
-
+  // Fetch nearby users
   const fetchNearby = async () => {
-    const users = await getNearbyAvailabilities(
-      location.latitude,
-      location.longitude
-    );
+    if (!location) return;
 
-    console.log("NEARBY MATCHES:", users);
+    try {
+      setLoadingNearby(true);
+
+      const users = await getNearbyAvailabilities(
+        location.latitude,
+        location.longitude
+      );
+
+      setNearbyUsers(users);
+    } catch (err) {
+      console.error("FAILED TO FETCH NEARBY USERS", err);
+    } finally {
+      setLoadingNearby(false);
+    }
   };
 
-  fetchNearby();
-}, [location]);
-
-
+  // Fetch when location changes
+  useEffect(() => {
+    fetchNearby();
+  }, [location]);
 
   // Toggle availability
   const handleAvailabilityChange = async (value: boolean) => {
     setAvailable(value);
 
-    if (!location) {
-      console.log("NO LOCATION — aborting");
-      return;
-    }
+    if (!location) return;
 
     try {
       await upsertAvailability({
@@ -62,6 +68,13 @@ useEffect(() => {
         longitude: location.longitude,
         radius_km: 3,
       });
+
+      // ✅ REFRESH NEARBY AFTER TOGGLE
+      if (value) {
+        fetchNearby();
+      } else {
+        setNearbyUsers([]); // hide when unavailable
+      }
     } catch (err) {
       console.error("FAILED TO SAVE AVAILABILITY:", err);
     }
@@ -73,7 +86,7 @@ useEffect(() => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.text}>Home</Text>
 
       <Button title="Logout" onPress={handleLogout} />
@@ -92,18 +105,53 @@ useEffect(() => {
           {location.latitude.toFixed(3)}, {location.longitude.toFixed(3)}
         </Text>
       )}
-    </View>
+
+      {/* ✅ SHOW DISCOVERY ONLY WHEN AVAILABLE */}
+      {available && (
+        <>
+          <Text style={styles.sectionTitle}>
+            Nearby Gym Partners
+          </Text>
+
+          {loadingNearby && <Text>Finding partners...</Text>}
+
+          {!loadingNearby && nearbyUsers.length === 0 && (
+            <Text style={{ marginTop: 8 }}>
+              No one nearby right now.
+            </Text>
+          )}
+
+          {nearbyUsers.map((user) => (
+            <View key={user.user_id} style={styles.card}>
+              <Text>User nearby</Text>
+              <Text>Radius: {user.radius_km} km</Text>
+            </View>
+          ))}
+        </>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    padding: 20,
     alignItems: "center",
-    justifyContent: "center",
   },
   text: {
     fontSize: 18,
     marginBottom: 8,
+  },
+  sectionTitle: {
+    marginTop: 24,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  card: {
+    marginTop: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 8,
+    width: "100%",
   },
 });

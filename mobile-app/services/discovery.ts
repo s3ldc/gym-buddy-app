@@ -18,11 +18,11 @@ export async function getNearbyAvailabilities(
     .select("*")
     .eq("status", true)
     .gt("expires_at", new Date().toISOString())
-    .neq("user_id", myUserId); // ✅ EXCLUDE SELF
+    .neq("user_id", myUserId); // ✅ exclude self at DB level
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
+
+  if (!data) return [];
 
   return data.filter(item => {
     const distance = getDistanceKm(
