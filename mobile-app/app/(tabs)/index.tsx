@@ -23,6 +23,9 @@ export default function HomeScreen() {
       ? nearbyUsers
       : nearbyUsers.filter((u) => u.workout_type === workoutFilter);
   const [restoring, setRestoring] = useState(true);
+  const [selectedWorkout, setSelectedWorkout] = useState<
+    "strength" | "cardio" | "mixed"
+  >("mixed");
 
   // Restore availability on app load
   useEffect(() => {
@@ -91,7 +94,7 @@ export default function HomeScreen() {
         latitude: location.latitude,
         longitude: location.longitude,
         radius_km: 3,
-        workout_type: "mixed",
+        workout_type: selectedWorkout, // ✅ use selector
         expires_at: expiresAt,
       });
 
@@ -123,6 +126,20 @@ export default function HomeScreen() {
       <Text style={styles.text}>Home</Text>
 
       <Button title="Logout" onPress={handleLogout} />
+
+      <Text style={{ marginTop: 16, fontWeight: "600" }}>Workout Type</Text>
+
+      <View style={styles.selectorRow}>
+        {["strength", "cardio", "mixed"].map((type) => (
+          <Button
+            key={type}
+            title={type}
+            onPress={() => setSelectedWorkout(type as any)}
+            disabled={!available}
+            color={selectedWorkout === type ? "#007AFF" : undefined}
+          />
+        ))}
+      </View>
 
       <AvailabilityToggle
         value={available}
@@ -205,5 +222,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     marginTop: 16,
+  },
+  selectorRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginVertical: 8,
   },
 });
