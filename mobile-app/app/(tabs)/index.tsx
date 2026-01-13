@@ -16,18 +16,33 @@ export default function HomeScreen() {
   const [loadingNearby, setLoadingNearby] = useState(false);
 
   // Restore availability on app load
-  useEffect(() => {
-    const restoreAvailability = async () => {
-      try {
-        const activeAvailability = await getMyAvailability();
-        setAvailable(!!activeAvailability);
-      } catch (err) {
-        console.error("FAILED TO RESTORE AVAILABILITY", err);
-      }
-    };
+useEffect(() => {
+  const restoreAvailability = async () => {
+    try {
+      const activeAvailability = await getMyAvailability();
 
-    restoreAvailability();
-  }, []);
+      if (activeAvailability) {
+        setAvailable(true);
+      } else {
+        setAvailable(false);
+
+        // 🔴 FORCE CLEANUP OF STALE TRUE STATUS
+        await upsertAvailability({
+          status: false,
+          available_at: "expired",
+          latitude: location?.latitude ?? 0,
+          longitude: location?.longitude ?? 0,
+          radius_km: 3,
+          expires_at: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.error("FAILED TO RESTORE AVAILABILITY", err);
+    }
+  };
+
+  restoreAvailability();
+}, []);
 
   // Fetch nearby users
   const fetchNearby = async () => {
