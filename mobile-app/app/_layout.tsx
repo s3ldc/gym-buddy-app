@@ -6,8 +6,11 @@ import { supabase } from "../lib/supabase";
 export default function RootLayout() {
   const [session, setSession] = useState<any>(null);
   const [hasSeenWelcome, setHasSeenWelcome] = useState<boolean | null>(null);
+  console.log("hasSeenWelcome:", hasSeenWelcome);
+
 
   useEffect(() => {
+
     AsyncStorage.getItem("hasSeenWelcome").then(value => {
       setHasSeenWelcome(value === "true");
     });
@@ -29,9 +32,23 @@ export default function RootLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      {!hasSeenWelcome && <Stack.Screen name="welcome" />}
-      {hasSeenWelcome && !session && <Stack.Screen name="login" />}
-      {hasSeenWelcome && session && <Stack.Screen name="(tabs)" />}
+      {/* Welcome: only if first time */}
+      <Stack.Screen
+        name="welcome"
+        redirect={hasSeenWelcome}
+      />
+
+      {/* Login: only if seen welcome AND not logged in */}
+      <Stack.Screen
+        name="login"
+        redirect={!hasSeenWelcome || !!session}
+      />
+
+      {/* App: only if logged in */}
+      <Stack.Screen
+        name="(tabs)"
+        redirect={!session}
+      />
     </Stack>
   );
 }
