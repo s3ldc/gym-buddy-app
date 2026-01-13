@@ -134,17 +134,20 @@ export default function HomeScreen() {
             <Text style={{ marginTop: 8 }}>No one nearby right now.</Text>
           )}
 
-          {nearbyUsers.map((user) => (
-            <View key={user.user_id} style={styles.card}>
-              <Text style={{ fontWeight: "600" }}>Available now</Text>
+          {nearbyUsers.map((user) => {
+            console.log("NEARBY USER DATA:", user);
 
-              <Text>{formatDistance(user.distanceKm)}</Text>
+            return (
+              <View key={user.user_id} style={styles.card}>
+                <Text style={{ fontWeight: "600" }}>Available now</Text>
+                <Text>{formatDistance(user.distanceKm)}</Text>
 
-              {user.workout_type && <Text>Workout: {user.workout_type}</Text>}
+                {user.workout_type && <Text>Workout: {user.workout_type}</Text>}
 
-              <Text>Radius: {user.radius_km} km</Text>
-            </View>
-          ))}
+                <Text>Radius: {user.radius_km} km</Text>
+              </View>
+            );
+          })}
         </>
       )}
     </ScrollView>
