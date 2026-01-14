@@ -228,7 +228,6 @@ export default function HomeScreen() {
           )}
 
           {filteredUsers.map((user) => {
-            console.log("NEARBY USER DATA:", user);
 
             return (
               <View key={user.user_id} style={styles.card}>
