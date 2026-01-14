@@ -12,7 +12,6 @@ import { formatDistance } from "../../utils/distance";
 import Slider from "@react-native-community/slider";
 import { ActivityIndicator } from "react-native";
 
-
 export default function HomeScreen() {
   const [available, setAvailable] = useState(false);
   const { location, loading, error } = useLocation();
@@ -48,6 +47,10 @@ export default function HomeScreen() {
           // ✅ restore saved radius
           if (row.radius_km) {
             setRadiusKm(row.radius_km);
+          }
+
+          if (row?.workout_type) {
+            setSelectedWorkout(row.workout_type);
           }
         }
       } catch (err) {
@@ -102,8 +105,8 @@ export default function HomeScreen() {
         available_at: value ? "now" : "off",
         latitude: location.latitude,
         longitude: location.longitude,
-        radius_km: radiusKm, // ✅ use selected radius
-        workout_type: selectedWorkout,
+        radius_km: radiusKm,
+        ...(value && { workout_type: selectedWorkout }),
         expires_at: expiresAt,
       });
 
@@ -122,14 +125,13 @@ export default function HomeScreen() {
     await supabase.auth.signOut();
   };
 
-if (restoring) {
-  return (
-    <View style={styles.container}>
-      <ActivityIndicator size="small" />
-    </View>
-  );
-}
-
+  if (restoring) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="small" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -169,19 +171,18 @@ if (restoring) {
         <Text style={{ opacity: available ? 0.5 : 1 }}>{radiusKm} km</Text>
       </View>
 
-      <View style={{width: "100%", paddingHorizontal: 8}}>
-
-      <Slider
-        value={radiusKm}
-        minimumValue={1}
-        maximumValue={10}
-        step={1}
-        onValueChange={setRadiusKm}
-        disabled={available} // 🔒 lock when ON
-        minimumTrackTintColor="#007AFF"
-        maximumTrackTintColor="#ccc"
-        style={{ width: "100%", height: 40 }}
-      />
+      <View style={{ width: "100%", paddingHorizontal: 8 }}>
+        <Slider
+          value={radiusKm}
+          minimumValue={1}
+          maximumValue={10}
+          step={1}
+          onValueChange={setRadiusKm}
+          disabled={available} // 🔒 lock when ON
+          minimumTrackTintColor="#007AFF"
+          maximumTrackTintColor="#ccc"
+          style={{ width: "100%", height: 40 }}
+        />
       </View>
 
       <AvailabilityToggle
@@ -235,7 +236,6 @@ if (restoring) {
           )}
 
           {filteredUsers.map((user) => {
-
             return (
               <View key={user.user_id} style={styles.card}>
                 <Text style={{ fontWeight: "600" }}>Available now</Text>
@@ -326,6 +326,6 @@ const styles = StyleSheet.create({
     opacity: 0.35,
   },
   radiusRow: {
-  marginVertical: 8,
-},
+    marginVertical: 8,
+  },
 });
