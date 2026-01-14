@@ -9,6 +9,7 @@ import {
 import { supabase } from "../../lib/supabase";
 import { getNearbyAvailabilities } from "../../services/discovery";
 import { formatDistance } from "../../utils/distance";
+import Slider from "@react-native-community/slider";
 
 export default function HomeScreen() {
   const [available, setAvailable] = useState(false);
@@ -26,6 +27,7 @@ export default function HomeScreen() {
   const [selectedWorkout, setSelectedWorkout] = useState<
     "strength" | "cardio" | "mixed"
   >("mixed");
+  const [radiusKm, setRadiusKm] = useState(3);
 
   // Restore availability on app load
   useEffect(() => {
@@ -40,6 +42,11 @@ export default function HomeScreen() {
         } else {
           const isExpired = new Date(row.expires_at) < new Date();
           setAvailable(row.status && !isExpired);
+
+          // ✅ restore saved radius
+          if (row.radius_km) {
+            setRadiusKm(row.radius_km);
+          }
         }
       } catch (err) {
         console.error("FAILED TO RESTORE AVAILABILITY", err);
@@ -61,7 +68,7 @@ export default function HomeScreen() {
       const users = await getNearbyAvailabilities(
         location.latitude,
         location.longitude,
-        3 // your current radius
+        radiusKm
       );
 
       setNearbyUsers(users);
@@ -93,8 +100,8 @@ export default function HomeScreen() {
         available_at: value ? "now" : "off",
         latitude: location.latitude,
         longitude: location.longitude,
-        radius_km: 3,
-        workout_type: selectedWorkout, // ✅ use selector
+        radius_km: radiusKm, // ✅ use selected radius
+        workout_type: selectedWorkout,
         expires_at: expiresAt,
       });
 
@@ -153,6 +160,23 @@ export default function HomeScreen() {
         })}
       </View>
 
+      <Text style={styles.selectorTitle}>Search Radius</Text>
+
+      <View style={styles.radiusRow}>
+        <Text style={{ opacity: available ? 0.5 : 1 }}>{radiusKm} km</Text>
+      </View>
+
+      <Slider
+        value={radiusKm}
+        minimumValue={1}
+        maximumValue={10}
+        step={1}
+        onValueChange={setRadiusKm}
+        disabled={available} // 🔒 lock when ON
+        minimumTrackTintColor="#007AFF"
+        maximumTrackTintColor="#ccc"
+      />
+
       <AvailabilityToggle
         value={available}
         onChange={handleAvailabilityChange}
@@ -197,7 +221,10 @@ export default function HomeScreen() {
           {loadingNearby && <Text>Finding partners...</Text>}
 
           {!loadingNearby && nearbyUsers.length === 0 && (
-            <Text style={{ marginTop: 8 }}>No one nearby right now.</Text>
+            <Text style={{ marginTop: 8 }}>
+              No gym partners nearby at the moment. Check back soon or increase
+              your radius.
+            </Text>
           )}
 
           {filteredUsers.map((user) => {
@@ -288,8 +315,11 @@ const styles = StyleSheet.create({
     borderColor: "#007AFF",
     color: "#fff",
   },
-  
-selectorChipDisabled: {
-  opacity: 0.35,
+
+  selectorChipDisabled: {
+    opacity: 0.35,
+  },
+  radiusRow: {
+  marginVertical: 8,
 },
 });
