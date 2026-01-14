@@ -166,6 +166,8 @@ export default function HomeScreen() {
         <Text style={{ opacity: available ? 0.5 : 1 }}>{radiusKm} km</Text>
       </View>
 
+      <View style={{width: "100%", paddingHorizontal: 8}}>
+
       <Slider
         value={radiusKm}
         minimumValue={1}
@@ -175,7 +177,9 @@ export default function HomeScreen() {
         disabled={available} // 🔒 lock when ON
         minimumTrackTintColor="#007AFF"
         maximumTrackTintColor="#ccc"
+        style={{ width: "100%", height: 40 }}
       />
+      </View>
 
       <AvailabilityToggle
         value={available}
