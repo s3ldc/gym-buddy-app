@@ -10,6 +10,8 @@ import { supabase } from "../../lib/supabase";
 import { getNearbyAvailabilities } from "../../services/discovery";
 import { formatDistance } from "../../utils/distance";
 import Slider from "@react-native-community/slider";
+import { ActivityIndicator } from "react-native";
+
 
 export default function HomeScreen() {
   const [available, setAvailable] = useState(false);
@@ -120,13 +122,14 @@ export default function HomeScreen() {
     await supabase.auth.signOut();
   };
 
-  if (restoring) {
-    return (
-      <View style={styles.container}>
-        <Text>Restoring availability…</Text>
-      </View>
-    );
-  }
+if (restoring) {
+  return (
+    <View style={styles.container}>
+      <ActivityIndicator size="small" />
+    </View>
+  );
+}
+
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
