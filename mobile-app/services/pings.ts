@@ -69,3 +69,23 @@ export async function respondToPing(
     throw error;
   }
 }
+
+export async function getMyAcceptedPings() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) return [];
+
+  const userId = session.user.id;
+
+  const { data, error } = await supabase
+    .from("pings")
+    .select("*")
+    .eq("status", "accepted")
+    .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`);
+
+  if (error || !data) return [];
+
+  return data;
+}

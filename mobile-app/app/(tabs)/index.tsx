@@ -12,6 +12,7 @@ import { formatDistance } from "../../utils/distance";
 import Slider from "@react-native-community/slider";
 import { ActivityIndicator } from "react-native";
 import { sendPing } from "../../services/pings";
+import { getMyAcceptedPings } from "../../services/pings";
 
 type WorkoutType = "strength" | "cardio" | "mixed";
 type WorkoutFilter = "all" | WorkoutType;
@@ -34,6 +35,32 @@ export default function HomeScreen() {
   const [radiusKm, setRadiusKm] = useState(3);
   const [sentPings, setSentPings] = useState<Set<string>>(new Set());
   const [pingingUserId, setPingingUserId] = useState<string | null>(null);
+  const [matchedUserIds, setMatchedUserIds] = useState<Set<string>>(new Set());
+
+  const loadMatches = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    try {
+      const matches = await getMyAcceptedPings();
+
+      const ids = new Set<string>();
+
+      matches.forEach((ping) => {
+        const otherId =
+          ping.from_user_id === session.user.id
+            ? ping.to_user_id
+            : ping.from_user_id;
+
+        ids.add(otherId);
+      });
+
+      setMatchedUserIds(ids);
+    } catch (err) {
+      console.error("FAILED TO LOAD MATCHES", err);
+    }
+  };
 
   const handleSendPing = async (toUserId: string) => {
     if (!available) return;
@@ -51,6 +78,11 @@ export default function HomeScreen() {
       setPingingUserId(null);
     }
   };
+
+  useEffect(() => {
+    if (!available) return;
+    loadMatches();
+  }, [available]);
 
   // Restore availability on app load
   useEffect(() => {
@@ -258,6 +290,8 @@ export default function HomeScreen() {
           )}
 
           {filteredUsers.map((user) => {
+            const isMatched = matchedUserIds.has(user.user_id);
+
             return (
               <View key={user.user_id} style={styles.card}>
                 <Text style={{ fontWeight: "600" }}>Available now</Text>
@@ -271,7 +305,9 @@ export default function HomeScreen() {
                 <View style={{ marginTop: 10 }}>
                   <Button
                     title={
-                      sentPings.has(user.user_id)
+                      isMatched
+                        ? "Matched"
+                        : sentPings.has(user.user_id)
                         ? "Ping Sent"
                         : pingingUserId === user.user_id
                         ? "Sending..."
@@ -279,6 +315,7 @@ export default function HomeScreen() {
                     }
                     onPress={() => handleSendPing(user.user_id)}
                     disabled={
+                      isMatched ||
                       !available ||
                       sentPings.has(user.user_id) ||
                       pingingUserId === user.user_id
