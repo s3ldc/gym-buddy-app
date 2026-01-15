@@ -11,6 +11,7 @@ import { getNearbyAvailabilities } from "../../services/discovery";
 import { formatDistance } from "../../utils/distance";
 import Slider from "@react-native-community/slider";
 import { ActivityIndicator } from "react-native";
+import { sendPing } from "../../services/pings";
 
 type WorkoutType = "strength" | "cardio" | "mixed";
 type WorkoutFilter = "all" | WorkoutType;
@@ -31,6 +32,25 @@ export default function HomeScreen() {
   const [restoring, setRestoring] = useState(true);
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutType>("mixed");
   const [radiusKm, setRadiusKm] = useState(3);
+  const [sentPings, setSentPings] = useState<Set<string>>(new Set());
+  const [pingingUserId, setPingingUserId] = useState<string | null>(null);
+
+  const handleSendPing = async (toUserId: string) => {
+    if (!available) return;
+
+    try {
+      setPingingUserId(toUserId);
+
+      await sendPing(toUserId);
+
+      setSentPings((prev) => new Set(prev).add(toUserId));
+    } catch (err: any) {
+      console.error("FAILED TO SEND PING", err.message);
+      alert(err.message ?? "Could not send ping");
+    } finally {
+      setPingingUserId(null);
+    }
+  };
 
   // Restore availability on app load
   useEffect(() => {
@@ -241,11 +261,30 @@ export default function HomeScreen() {
             return (
               <View key={user.user_id} style={styles.card}>
                 <Text style={{ fontWeight: "600" }}>Available now</Text>
+
                 <Text>{formatDistance(user.distanceKm)}</Text>
 
                 {user.workout_type && <Text>Workout: {user.workout_type}</Text>}
 
                 <Text>Radius: {user.radius_km} km</Text>
+
+                <View style={{ marginTop: 10 }}>
+                  <Button
+                    title={
+                      sentPings.has(user.user_id)
+                        ? "Ping Sent"
+                        : pingingUserId === user.user_id
+                        ? "Sending..."
+                        : "Ping Gym Partner"
+                    }
+                    onPress={() => handleSendPing(user.user_id)}
+                    disabled={
+                      !available ||
+                      sentPings.has(user.user_id) ||
+                      pingingUserId === user.user_id
+                    }
+                  />
+                </View>
               </View>
             );
           })}
