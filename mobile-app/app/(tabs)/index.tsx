@@ -12,22 +12,24 @@ import { formatDistance } from "../../utils/distance";
 import Slider from "@react-native-community/slider";
 import { ActivityIndicator } from "react-native";
 
+type WorkoutType = "strength" | "cardio" | "mixed";
+type WorkoutFilter = "all" | WorkoutType;
+
+const WORKOUT_TYPES: WorkoutType[] = ["strength", "cardio", "mixed"];
+const WORKOUT_FILTERS: WorkoutFilter[] = ["all", "strength", "cardio", "mixed"];
+
 export default function HomeScreen() {
   const [available, setAvailable] = useState(false);
   const { location, loading, error } = useLocation();
   const [nearbyUsers, setNearbyUsers] = useState<any[]>([]);
   const [loadingNearby, setLoadingNearby] = useState(false);
-  const [workoutFilter, setWorkoutFilter] = useState<
-    "all" | "strength" | "cardio" | "mixed"
-  >("all");
+  const [workoutFilter, setWorkoutFilter] = useState<WorkoutFilter>("all");
   const filteredUsers =
     workoutFilter === "all"
       ? nearbyUsers
       : nearbyUsers.filter((u) => u.workout_type === workoutFilter);
   const [restoring, setRestoring] = useState(true);
-  const [selectedWorkout, setSelectedWorkout] = useState<
-    "strength" | "cardio" | "mixed"
-  >("mixed");
+  const [selectedWorkout, setSelectedWorkout] = useState<WorkoutType>("mixed");
   const [radiusKm, setRadiusKm] = useState(3);
 
   // Restore availability on app load
@@ -141,16 +143,16 @@ export default function HomeScreen() {
       <Text style={styles.selectorTitle}>Workout Type</Text>
 
       <View style={styles.selectorRow}>
-        {["strength", "cardio", "mixed"].map((type) => {
+        {WORKOUT_TYPES.map((type) => {
           const selected = selectedWorkout === type;
-          const locked = available; // 🔒 lock when availability is ON
+          const locked = available;
 
           return (
             <Text
               key={type}
               onPress={() => {
                 if (!locked) {
-                  setSelectedWorkout(type as any);
+                  setSelectedWorkout(type);
                 }
               }}
               style={[
@@ -206,13 +208,13 @@ export default function HomeScreen() {
           <Text style={styles.selectorTitle}>Filter by Workout</Text>
 
           <View style={styles.filterRow}>
-            {["all", "strength", "cardio", "mixed"].map((type) => {
+            {WORKOUT_FILTERS.map((type) => {
               const selected = workoutFilter === type;
 
               return (
                 <Text
                   key={type}
-                  onPress={() => setWorkoutFilter(type as any)}
+                  onPress={() => setWorkoutFilter(type)}
                   style={[
                     styles.filterChip,
                     selected && styles.filterChipSelected,
