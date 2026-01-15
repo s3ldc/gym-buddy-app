@@ -89,3 +89,21 @@ export async function getMyAcceptedPings() {
 
   return data;
 }
+
+export async function getMySentPendingPings() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) return [];
+
+  const { data, error } = await supabase
+    .from("pings")
+    .select("to_user_id")
+    .eq("from_user_id", session.user.id)
+    .eq("status", "pending");
+
+  if (error || !data) return [];
+
+  return data.map((row) => row.to_user_id);
+}

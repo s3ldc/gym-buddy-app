@@ -13,6 +13,7 @@ import Slider from "@react-native-community/slider";
 import { ActivityIndicator } from "react-native";
 import { sendPing } from "../../services/pings";
 import { getMyAcceptedPings } from "../../services/pings";
+import { getMySentPendingPings } from "../../services/pings";
 
 type WorkoutType = "strength" | "cardio" | "mixed";
 type WorkoutFilter = "all" | WorkoutType;
@@ -36,6 +37,15 @@ export default function HomeScreen() {
   const [sentPings, setSentPings] = useState<Set<string>>(new Set());
   const [pingingUserId, setPingingUserId] = useState<string | null>(null);
   const [matchedUserIds, setMatchedUserIds] = useState<Set<string>>(new Set());
+
+  const restoreSentPings = async () => {
+    try {
+      const sent = await getMySentPendingPings();
+      setSentPings(new Set(sent));
+    } catch (err) {
+      console.error("FAILED TO RESTORE SENT PINGS", err);
+    }
+  };
 
   const loadMatches = async () => {
     const {
@@ -81,7 +91,9 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!available) return;
+
     loadMatches();
+    restoreSentPings();
   }, [available]);
 
   // Restore availability on app load
