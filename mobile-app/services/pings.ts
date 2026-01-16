@@ -55,7 +55,6 @@ export async function getIncomingPings() {
     return [];
   }
 
-  console.log("INBOX RAW DATA:", data);
   return data ?? [];
 }
 
