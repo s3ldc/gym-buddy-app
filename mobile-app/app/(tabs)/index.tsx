@@ -364,7 +364,7 @@ export default function HomeScreen() {
                       }
                     }}
                     disabled={
-                      isMatched || !available || hasSentPing || isSending
+                      !isMatched && (!available || hasSentPing || isSending)
                     }
                   />
                 </View>

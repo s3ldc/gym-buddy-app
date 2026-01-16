@@ -109,7 +109,6 @@ export async function getMySentPendingPings() {
 }
 
 export async function endMatch(pingId: string) {
-  console.log("ENDING MATCH ID:", pingId);
 
   const {
     data: { session },
@@ -126,7 +125,6 @@ export async function endMatch(pingId: string) {
     .or(`from_user_id.eq.${session.user.id},to_user_id.eq.${session.user.id}`)
     .select();
 
-  console.log("END MATCH RESULT:", data, error);
 
   if (error) {
     throw error;
