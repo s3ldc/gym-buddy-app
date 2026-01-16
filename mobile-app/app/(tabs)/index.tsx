@@ -16,6 +16,8 @@ import { getMyAcceptedPings } from "../../services/pings";
 import { getMySentPendingPings } from "../../services/pings";
 import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 
 type WorkoutType = "strength" | "cardio" | "mixed";
 type WorkoutFilter = "all" | WorkoutType;
@@ -52,6 +54,15 @@ export default function HomeScreen() {
       console.error("FAILED TO RESTORE SENT PINGS", err);
     }
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!available) return;
+
+      loadMatches();
+      restoreSentPings();
+    }, [available])
+  );
 
   const loadMatches = async () => {
     const {
