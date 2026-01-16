@@ -204,3 +204,42 @@ export async function getPingById(pingId: string) {
   if (error || !data) return null;
   return data;
 }
+
+export async function hasMyActiveMatch() {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session) {
+    console.log("NO SESSION");
+    return false;
+  }
+
+  console.log("CHECKING MATCH FOR USER:", session.user.id);
+
+  const { data, error } = await supabase
+    .from("pings")
+    .select("*")
+    .eq("status", "accepted");
+
+  if (error) {
+    console.error("QUERY ERROR:", error);
+    return false;
+  }
+
+  console.log("ALL ACCEPTED PINGS:", data);
+
+  const matches = (data ?? []).filter(
+    (p) =>
+      p.from_user_id === session.user.id ||
+      p.to_user_id === session.user.id
+  );
+
+  console.log("FILTERED MATCHES:", matches);
+
+  return matches.length > 0;
+}
+
+
+

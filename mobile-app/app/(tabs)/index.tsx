@@ -18,6 +18,7 @@ import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
+// import { hasMyActiveMatch } from "../../services/pings";
 
 type WorkoutType = "strength" | "cardio" | "mixed";
 type WorkoutFilter = "all" | WorkoutType;
@@ -45,7 +46,29 @@ export default function HomeScreen() {
     {}
   );
   const params = useLocalSearchParams();
-  const hasActiveMatch = Object.keys(matchByUserId).length > 0;
+  const hasActiveMatch = matchedUserIds.size > 0;
+
+  // useEffect(() => {
+  //   refreshActiveMatch();
+  // }, []);
+
+  useEffect(() => {
+    if (!available) return;
+
+    loadMatches();
+    restoreSentPings();
+  }, [params?.refresh]);
+
+  // const refreshActiveMatch = async () => {
+  //   const hasMatch = await hasMyActiveMatch();
+
+  //   setHasActiveMatch((prev) => {
+  //     if (prev !== hasMatch) {
+  //       console.log("HAS ACTIVE MATCH:", hasMatch);
+  //     }
+  //     return hasMatch;
+  //   });
+  // };
 
   const restoreSentPings = async () => {
     try {
@@ -107,12 +130,12 @@ export default function HomeScreen() {
     }
   };
 
-  useEffect(() => {
-    if (!available) return;
+  // useEffect(() => {
+  //   if (!available) return;
 
-    loadMatches();
-    restoreSentPings();
-  }, [available, params?.refresh]);
+  //   loadMatches();
+  //   restoreSentPings();
+  // }, [available, params?.refresh]);
 
   // Restore availability on app load
   useEffect(() => {
@@ -206,10 +229,11 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!available) return;
 
-      loadMatches();
-      restoreSentPings();
+      if (available) {
+        loadMatches();
+        restoreSentPings();
+      }
 
       return () => {};
     }, [available])
@@ -369,6 +393,11 @@ export default function HomeScreen() {
               buttonTitle = "Ping Sent";
             }
 
+            const isViewMatch = isMatched;
+
+            const isPingDisabled =
+              hasActiveMatch || !available || hasSentPing || isSending;
+
             return (
               <View key={user.user_id} style={styles.card}>
                 <Text style={{ fontWeight: "600" }}>Available now</Text>
@@ -394,18 +423,9 @@ export default function HomeScreen() {
                         return;
                       }
 
-                      if (hasActiveMatch) {
-                        return; // 🔒 read-only mode
-                      }
-
                       handleSendPing(user.user_id);
                     }}
-                    disabled={
-                      (hasActiveMatch && !isMatched) ||
-                      !available ||
-                      hasSentPing ||
-                      isSending
-                    }
+                    disabled={isViewMatch ? false : isPingDisabled}
                   />
                 </View>
               </View>

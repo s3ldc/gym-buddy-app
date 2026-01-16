@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, Button, ScrollView } from "react-native";
 import { useEffect, useState } from "react";
 import { getIncomingPings, respondToPing } from "../../services/pings";
+import { router } from "expo-router";
 
 export default function InboxScreen() {
   const [pings, setPings] = useState<any[]>([]);
@@ -23,14 +24,18 @@ export default function InboxScreen() {
     fetchPings();
   }, []);
 
-  const handleRespond = async (
-    pingId: string,
-    action: "accept" | "reject"
-  ) => {
+  const handleRespond = async (pingId: string, action: "accept" | "reject") => {
     try {
       setRespondingId(pingId);
       await respondToPing(pingId, action);
       setPings((prev) => prev.filter((p) => p.id !== pingId));
+
+      if (action === "accept") {
+        router.replace({
+          pathname: "/",
+          params: { refresh: Date.now().toString() },
+        });
+      }
     } catch (err) {
       console.error("FAILED TO RESPOND TO PING", err);
     } finally {
@@ -47,9 +52,7 @@ export default function InboxScreen() {
       {loading && <Text>Loading...</Text>}
 
       {!loading && pings.length === 0 && (
-        <Text style={{ marginTop: 20 }}>
-          No incoming pings right now.
-        </Text>
+        <Text style={{ marginTop: 20 }}>No incoming pings right now.</Text>
       )}
 
       {pings.map((ping) => (
