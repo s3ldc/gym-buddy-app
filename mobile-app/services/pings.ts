@@ -12,6 +12,12 @@ export async function sendPing(toUserId: string) {
     throw new Error("Not authenticated");
   }
 
+  const activeMatches = await getMyAcceptedPings();
+
+  if (activeMatches.length > 0) {
+    throw new Error("You already have an active match");
+  }
+
   const fromUserId = session.user.id;
 
   if (fromUserId === toUserId) {
@@ -100,7 +106,6 @@ export async function respondToPing(
 }
 
 export async function getMyAcceptedPings() {
-  
   const {
     data: { session },
   } = await supabase.auth.getSession();

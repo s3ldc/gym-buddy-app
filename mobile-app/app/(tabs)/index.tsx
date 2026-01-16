@@ -361,6 +361,8 @@ export default function HomeScreen() {
 
             if (isMatched) {
               buttonTitle = "View Match";
+            } else if (hasActiveMatch) {
+              buttonTitle = "Currently Matched";
             } else if (isSending) {
               buttonTitle = "Sending...";
             } else if (hasSentPing) {
@@ -389,12 +391,20 @@ export default function HomeScreen() {
                             params: { pingId },
                           });
                         }
-                      } else {
-                        handleSendPing(user.user_id);
+                        return;
                       }
+
+                      if (hasActiveMatch) {
+                        return; // 🔒 read-only mode
+                      }
+
+                      handleSendPing(user.user_id);
                     }}
                     disabled={
-                      !isMatched && (!available || hasSentPing || isSending)
+                      (hasActiveMatch && !isMatched) ||
+                      !available ||
+                      hasSentPing ||
+                      isSending
                     }
                   />
                 </View>
