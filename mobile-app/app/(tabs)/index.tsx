@@ -95,16 +95,21 @@ export default function HomeScreen() {
 
   const handleSendPing = async (toUserId: string) => {
     if (!available) return;
+    if (sentPings.has(toUserId)) return; // 🔒 HARD GUARD
 
     try {
       setPingingUserId(toUserId);
-
       await sendPing(toUserId);
-
       setSentPings((prev) => new Set(prev).add(toUserId));
     } catch (err: any) {
+      if (err.message?.includes("duplicate key")) {
+        // graceful fallback
+        setSentPings((prev) => new Set(prev).add(toUserId));
+        return;
+      }
+
       console.error("FAILED TO SEND PING", err.message);
-      alert(err.message ?? "Could not send ping");
+      alert("Could not send ping");
     } finally {
       setPingingUserId(null);
     }

@@ -35,9 +35,13 @@ export async function sendPing(toUserId: string) {
 export async function getIncomingPings() {
   const {
     data: { session },
+    error: sessionError,
   } = await supabase.auth.getSession();
 
-  if (!session) return [];
+  if (sessionError || !session) {
+    console.log("NO SESSION FOR INBOX");
+    return [];
+  }
 
   const { data, error } = await supabase
     .from("pings")
@@ -46,10 +50,15 @@ export async function getIncomingPings() {
     .eq("status", "pending")
     .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
+  if (error) {
+    console.error("INBOX QUERY FAILED", error);
+    return [];
+  }
 
-  return data;
+  console.log("INBOX RAW DATA:", data);
+  return data ?? [];
 }
+
 
 /**
  * Accept or reject a ping
