@@ -14,6 +14,7 @@ import { ActivityIndicator } from "react-native";
 import { sendPing } from "../../services/pings";
 import { getMyAcceptedPings } from "../../services/pings";
 import { getMySentPendingPings } from "../../services/pings";
+import { router } from "expo-router";
 
 type WorkoutType = "strength" | "cardio" | "mixed";
 type WorkoutFilter = "all" | WorkoutType;
@@ -316,21 +317,22 @@ export default function HomeScreen() {
 
                 <View style={{ marginTop: 10 }}>
                   <Button
-                    title={
-                      isMatched
-                        ? "Matched"
-                        : sentPings.has(user.user_id)
-                        ? "Ping Sent"
-                        : pingingUserId === user.user_id
-                        ? "Sending..."
-                        : "Ping Gym Partner"
-                    }
-                    onPress={() => handleSendPing(user.user_id)}
+                    title={isMatched ? "View Match" : "..."}
+                    onPress={() => {
+                      if (isMatched) {
+                        router.push({
+                          pathname: "/match/[userId]",
+                          params: { userId: user.user_id },
+                        });
+                      } else {
+                        handleSendPing(user.user_id);
+                      }
+                    }}
                     disabled={
-                      isMatched ||
-                      !available ||
-                      sentPings.has(user.user_id) ||
-                      pingingUserId === user.user_id
+                      !isMatched &&
+                      (!available ||
+                        sentPings.has(user.user_id) ||
+                        pingingUserId === user.user_id)
                     }
                   />
                 </View>
