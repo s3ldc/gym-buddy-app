@@ -109,14 +109,34 @@ export async function getMySentPendingPings() {
 }
 
 export async function endMatch(pingId: string) {
-  const { error } = await supabase
+  console.log("ENDING MATCH ID:", pingId);
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    throw new Error("No session");
+  }
+
+  const { data, error } = await supabase
     .from("pings")
     .update({ status: "ended" })
-    .eq("id", pingId);
+    .eq("id", pingId)
+    .or(`from_user_id.eq.${session.user.id},to_user_id.eq.${session.user.id}`)
+    .select();
+
+  console.log("END MATCH RESULT:", data, error);
 
   if (error) {
     throw error;
   }
+
+  if (!data || data.length === 0) {
+    throw new Error("No match row updated");
+  }
+
+  return data[0];
 }
 
 export async function getMatchWithUser(otherUserId: string) {
@@ -135,10 +155,20 @@ export async function getMatchWithUser(otherUserId: string) {
     .or(
       `and(from_user_id.eq.${userId},to_user_id.eq.${otherUserId}),
        and(from_user_id.eq.${otherUserId},to_user_id.eq.${userId})`
-    )
+    );
+
+  if (error || !data || data.length === 0) return null;
+
+  return data[0]; // <-- important
+}
+
+export async function getPingById(pingId: string) {
+  const { data, error } = await supabase
+    .from("pings")
+    .select("*")
+    .eq("id", pingId)
     .single();
 
   if (error || !data) return null;
-
   return data;
 }

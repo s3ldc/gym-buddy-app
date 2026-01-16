@@ -15,6 +15,7 @@ import { sendPing } from "../../services/pings";
 import { getMyAcceptedPings } from "../../services/pings";
 import { getMySentPendingPings } from "../../services/pings";
 import { router } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 
 type WorkoutType = "strength" | "cardio" | "mixed";
 type WorkoutFilter = "all" | WorkoutType;
@@ -38,6 +39,10 @@ export default function HomeScreen() {
   const [sentPings, setSentPings] = useState<Set<string>>(new Set());
   const [pingingUserId, setPingingUserId] = useState<string | null>(null);
   const [matchedUserIds, setMatchedUserIds] = useState<Set<string>>(new Set());
+  const [matchByUserId, setMatchByUserId] = useState<Record<string, string>>(
+    {}
+  );
+  const params = useLocalSearchParams();
 
   const restoreSentPings = async () => {
     try {
@@ -53,10 +58,12 @@ export default function HomeScreen() {
       data: { session },
     } = await supabase.auth.getSession();
 
+    if (!session) return;
+
     try {
       const matches = await getMyAcceptedPings();
-
-      const ids = new Set<string>();
+      const map: Record<string, string> = {};
+      const matchedSet = new Set<string>();
 
       matches.forEach((ping) => {
         const otherId =
@@ -64,10 +71,12 @@ export default function HomeScreen() {
             ? ping.to_user_id
             : ping.from_user_id;
 
-        ids.add(otherId);
+        map[otherId] = ping.id;
+        matchedSet.add(otherId);
       });
 
-      setMatchedUserIds(ids);
+      setMatchByUserId(map);
+      setMatchedUserIds(matchedSet);
     } catch (err) {
       console.error("FAILED TO LOAD MATCHES", err);
     }
@@ -95,7 +104,7 @@ export default function HomeScreen() {
 
     loadMatches();
     restoreSentPings();
-  }, [available]);
+  }, [available, params?.refresh]);
 
   // Restore availability on app load
   useEffect(() => {
@@ -320,9 +329,12 @@ export default function HomeScreen() {
                     title={isMatched ? "View Match" : "..."}
                     onPress={() => {
                       if (isMatched) {
+                        const pingId = matchByUserId[user.user_id];
+                        if (!pingId) return;
+
                         router.push({
-                          pathname: "/match/[userId]",
-                          params: { userId: user.user_id },
+                          pathname: "/match/[pingId]",
+                          params: { pingId },
                         });
                       } else {
                         handleSendPing(user.user_id);
