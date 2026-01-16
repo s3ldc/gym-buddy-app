@@ -59,7 +59,6 @@ export async function getIncomingPings() {
   return data ?? [];
 }
 
-
 /**
  * Accept or reject a ping
  */
@@ -67,15 +66,37 @@ export async function respondToPing(
   pingId: string,
   action: "accept" | "reject"
 ) {
-  const status = action === "accept" ? "accepted" : "rejected";
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  const { error } = await supabase
-    .from("pings")
-    .update({ status })
-    .eq("id", pingId);
+  if (!session) {
+    throw new Error("No session");
+  }
 
-  if (error) {
-    throw error;
+  if (action === "accept") {
+    const { error } = await supabase
+      .from("pings")
+      .update({
+        status: "accepted",
+        accepted_at: new Date().toISOString(),
+      })
+      .eq("id", pingId)
+      .eq("to_user_id", session.user.id);
+
+    if (error) throw error;
+  }
+
+  if (action === "reject") {
+    const { error } = await supabase
+      .from("pings")
+      .update({
+        status: "rejected",
+      })
+      .eq("id", pingId)
+      .eq("to_user_id", session.user.id);
+
+    if (error) throw error;
   }
 }
 
@@ -118,7 +139,6 @@ export async function getMySentPendingPings() {
 }
 
 export async function endMatch(pingId: string) {
-
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -129,15 +149,15 @@ export async function endMatch(pingId: string) {
 
   const { data, error } = await supabase
     .from("pings")
-    .update({ status: "ended" })
+    .update({
+      status: "ended",
+      ended_at: new Date().toISOString(),
+    })
     .eq("id", pingId)
     .or(`from_user_id.eq.${session.user.id},to_user_id.eq.${session.user.id}`)
     .select();
 
-
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
   if (!data || data.length === 0) {
     throw new Error("No match row updated");
