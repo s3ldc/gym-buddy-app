@@ -313,6 +313,18 @@ export default function HomeScreen() {
 
           {filteredUsers.map((user) => {
             const isMatched = matchedUserIds.has(user.user_id);
+            const hasSentPing = sentPings.has(user.user_id);
+            const isSending = pingingUserId === user.user_id;
+
+            let buttonTitle = "Ping Gym Partner";
+
+            if (isMatched) {
+              buttonTitle = "View Match";
+            } else if (isSending) {
+              buttonTitle = "Sending...";
+            } else if (hasSentPing) {
+              buttonTitle = "Ping Sent";
+            }
 
             return (
               <View key={user.user_id} style={styles.card}>
@@ -326,25 +338,22 @@ export default function HomeScreen() {
 
                 <View style={{ marginTop: 10 }}>
                   <Button
-                    title={isMatched ? "View Match" : "..."}
+                    title={buttonTitle}
                     onPress={() => {
                       if (isMatched) {
                         const pingId = matchByUserId[user.user_id];
-                        if (!pingId) return;
-
-                        router.push({
-                          pathname: "/match/[pingId]",
-                          params: { pingId },
-                        });
+                        if (pingId) {
+                          router.push({
+                            pathname: "/match/[pingId]",
+                            params: { pingId },
+                          });
+                        }
                       } else {
                         handleSendPing(user.user_id);
                       }
                     }}
                     disabled={
-                      !isMatched &&
-                      (!available ||
-                        sentPings.has(user.user_id) ||
-                        pingingUserId === user.user_id)
+                      isMatched || !available || hasSentPing || isSending
                     }
                   />
                 </View>
