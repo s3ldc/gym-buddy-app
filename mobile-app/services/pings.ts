@@ -107,3 +107,38 @@ export async function getMySentPendingPings() {
 
   return data.map((row) => row.to_user_id);
 }
+
+export async function endMatch(pingId: string) {
+  const { error } = await supabase
+    .from("pings")
+    .update({ status: "ended" })
+    .eq("id", pingId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function getMatchWithUser(otherUserId: string) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) return null;
+
+  const userId = session.user.id;
+
+  const { data, error } = await supabase
+    .from("pings")
+    .select("*")
+    .eq("status", "accepted")
+    .or(
+      `and(from_user_id.eq.${userId},to_user_id.eq.${otherUserId}),
+       and(from_user_id.eq.${otherUserId},to_user_id.eq.${userId})`
+    )
+    .single();
+
+  if (error || !data) return null;
+
+  return data;
+}
