@@ -55,15 +55,6 @@ export default function HomeScreen() {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!available) return;
-
-      loadMatches();
-      restoreSentPings();
-    }, [available])
-  );
-
   const loadMatches = async () => {
     const {
       data: { session },
@@ -211,6 +202,17 @@ export default function HomeScreen() {
       console.error("FAILED TO SAVE AVAILABILITY:", err);
     }
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!available) return;
+
+      loadMatches();
+      restoreSentPings();
+
+      return () => {};
+    }, [available])
+  );
 
   // Logout
   const handleLogout = async () => {
