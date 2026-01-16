@@ -101,6 +101,7 @@ export async function respondToPing(
 }
 
 export async function getMyAcceptedPings() {
+  
   const {
     data: { session },
   } = await supabase.auth.getSession();

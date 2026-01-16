@@ -45,6 +45,7 @@ export default function HomeScreen() {
     {}
   );
   const params = useLocalSearchParams();
+  const hasActiveMatch = Object.keys(matchByUserId).length > 0;
 
   const restoreSentPings = async () => {
     try {
@@ -231,13 +232,34 @@ export default function HomeScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.text}>Home</Text>
 
+      {hasActiveMatch && (
+        <View
+          style={{
+            marginVertical: 12,
+            padding: 12,
+            backgroundColor: "#E8F5E9",
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: "#34C759",
+            width: "100%",
+          }}
+        >
+          <Text style={{ fontWeight: "600", color: "#1B5E20" }}>
+            You’re currently matched with a gym partner
+          </Text>
+          <Text style={{ marginTop: 4, fontSize: 12, color: "#1B5E20" }}>
+            End the match to change availability or settings.
+          </Text>
+        </View>
+      )}
+
       <Button title="Logout" onPress={handleLogout} />
       <Text style={styles.selectorTitle}>Workout Type</Text>
 
       <View style={styles.selectorRow}>
         {WORKOUT_TYPES.map((type) => {
           const selected = selectedWorkout === type;
-          const locked = available;
+          const locked = available || hasActiveMatch; // 🔒 lock when ON or matched
 
           return (
             <Text
@@ -272,7 +294,7 @@ export default function HomeScreen() {
           maximumValue={10}
           step={1}
           onValueChange={setRadiusKm}
-          disabled={available} // 🔒 lock when ON
+          disabled={available || hasActiveMatch} // 🔒 lock when ON
           minimumTrackTintColor="#007AFF"
           maximumTrackTintColor="#ccc"
           style={{ width: "100%", height: 40 }}
@@ -282,6 +304,7 @@ export default function HomeScreen() {
       <AvailabilityToggle
         value={available}
         onChange={handleAvailabilityChange}
+        disabled={hasActiveMatch}
       />
 
       <Text>Status: {available ? "Available" : "Not available"}</Text>
