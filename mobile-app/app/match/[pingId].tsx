@@ -102,18 +102,27 @@ export default function MatchDetailScreen() {
 
   const handleOnTheWay = async () => {
     if (!pingId) return;
-    if (sendingEvent === "on_the_way") return; // 🔒 guard
+    if (hasSentOnTheWay) return;
 
     try {
       setSendingEvent("on_the_way");
+
+      // ✅ optimistic update (THIS IS THE KEY)
+      setSentEventTypes((prev) => new Set(prev).add("on_the_way"));
+
       await sendMatchEvent(pingId, "on_the_way");
-      // await loadEvents(); // refresh timeline
     } catch (err) {
       console.error("FAILED TO ADD EVENT", err);
+
+      // rollback if needed
+      setSentEventTypes((prev) => {
+        const next = new Set(prev);
+        next.delete("on_the_way");
+        return next;
+      });
     } finally {
       setSendingEvent(null);
     }
-    // await loadEvents();
   };
 
   const hasSentOnTheWay =
