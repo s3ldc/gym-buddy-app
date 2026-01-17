@@ -63,7 +63,7 @@ export async function addMatchEvent(
 
   const { error } = await supabase.from("match_events").insert({
     ping_id: pingId,
-    user_id: session.user.id,
+    from_user_id: session.user.id,
     event_type: eventType,
   });
 
