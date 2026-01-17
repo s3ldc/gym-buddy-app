@@ -2,6 +2,8 @@ import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../lib/supabase";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 
 export default function RootLayout() {
   const [session, setSession] = useState<any>(null);
@@ -31,6 +33,7 @@ export default function RootLayout() {
   if (hasSeenWelcome === null) return null;
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <Stack screenOptions={{ headerShown: false }}>
       {/* Welcome: only if first time */}
       <Stack.Screen
@@ -50,5 +53,6 @@ export default function RootLayout() {
         redirect={!session}
       />
     </Stack>
+    </GestureHandlerRootView>
   );
 }

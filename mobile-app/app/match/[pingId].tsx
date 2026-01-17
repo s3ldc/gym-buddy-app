@@ -2,8 +2,27 @@ import { View, Text, StyleSheet, Button } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { endMatch } from "../../services/pings";
 import { useState } from "react";
+import { getMatchEvents } from "../../services/matchEvents";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
+import { ScrollView } from "react-native-gesture-handler";
 
 export default function MatchDetailScreen() {
+  function formatEvent(type: string) {
+    switch (type) {
+      case "on_the_way":
+        return "On the way 🚶";
+      case "running_late":
+        return "Running late ⏱️";
+      case "at_gym":
+        return "At the gym 💪";
+      case "cant_make_it":
+        return "Can’t make it ❌";
+      default:
+        return type;
+    }
+  }
+
   const params = useLocalSearchParams<{ pingId: string | string[] }>();
 
   const pingId =
@@ -26,12 +45,56 @@ export default function MatchDetailScreen() {
       setEnding(false);
     }
   };
+  const [events, setEvents] = useState<any[]>([]);
+
+  const loadEvents = async () => {
+    try {
+      const data = await getMatchEvents(pingId as string);
+      setEvents(data);
+    } catch (err) {
+      console.error("FAILED TO LOAD MATCH EVENTS", err);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadEvents();
+    }, [pingId])
+  );
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>Workout Match</Text>
 
       <Text style={styles.info}>You’re matched and ready to work out.</Text>
+
+      <View style={{ marginTop: 24 }}>
+        <Text style={{ fontWeight: "600", marginBottom: 8 }}>
+          Match Timeline
+        </Text>
+
+        {events.length === 0 && (
+          <Text style={{ color: "#777" }}>No updates yet.</Text>
+        )}
+
+        {events.map((event) => (
+          <View
+            key={event.id}
+            style={{
+              paddingVertical: 8,
+              borderBottomWidth: 1,
+              borderColor: "#eee",
+            }}
+          >
+            <Text style={{ fontWeight: "500" }}>
+              {formatEvent(event.event_type)}
+            </Text>
+            <Text style={{ fontSize: 12, color: "#777" }}>
+              {new Date(event.created_at).toLocaleTimeString()}
+            </Text>
+          </View>
+        ))}
+      </View>
 
       <View style={{ marginTop: 24 }}>
         <Button
@@ -40,7 +103,7 @@ export default function MatchDetailScreen() {
           disabled={ending}
         />
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -48,7 +111,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    justifyContent: "center",
+    // justifyContent: "center",
   },
   title: {
     fontSize: 20,
