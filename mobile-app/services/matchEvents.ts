@@ -59,7 +59,7 @@ export async function addMatchEvent(
 
   if (!session) {
     throw new Error("Not authenticated");
-  }
+  };
 
   const { error } = await supabase.from("match_events").insert({
     ping_id: pingId,
