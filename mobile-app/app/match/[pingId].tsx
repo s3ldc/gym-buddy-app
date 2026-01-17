@@ -5,7 +5,7 @@ import { useState } from "react";
 import { getMatchEvents } from "../../services/matchEvents";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
-import { ScrollView } from "react-native-gesture-handler";
+import { ScrollView } from "react-native";
 // import { addMatchEvent } from "../../services/matchEvents";
 import { sendMatchEvent } from "../../services/matchEvents";
 import { supabase } from "../../lib/supabase";
@@ -59,6 +59,7 @@ export default function MatchDetailScreen() {
       console.error("FAILED TO LOAD MATCH EVENTS", err);
     }
   };
+  const [sentEventTypes, setSentEventTypes] = useState<Set<string>>(new Set());
 
   useFocusEffect(
     useCallback(() => {
@@ -84,6 +85,11 @@ export default function MatchDetailScreen() {
               }
               return [...prev, payload.new];
             });
+            setSentEventTypes((prev) => {
+              const next = new Set(prev);
+              next.add(payload.new.event_type);
+              return next;
+            });
           }
         )
         .subscribe();
@@ -101,14 +107,25 @@ export default function MatchDetailScreen() {
     try {
       setSendingEvent("on_the_way");
       await sendMatchEvent(pingId, "on_the_way");
-      await loadEvents(); // refresh timeline
+      // await loadEvents(); // refresh timeline
     } catch (err) {
       console.error("FAILED TO ADD EVENT", err);
     } finally {
       setSendingEvent(null);
     }
+    // await loadEvents();
   };
 
+  const hasSentOnTheWay =
+    sentEventTypes.has("on_the_way") ||
+    events.some((e) => e.event_type === "on_the_way");
+
+  //   console.log("HAS SENT ON_THE_WAY:", hasSentOnTheWay);
+
+  //   console.log(
+  //   "EVENT TYPES:",
+  //   events.map((e) => e.event_type)
+  // );
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Workout Match</Text>
@@ -145,9 +162,15 @@ export default function MatchDetailScreen() {
 
       <View style={{ marginTop: 16 }}>
         <Button
-          title={sendingEvent === "on_the_way" ? "Sending..." : "On the way"}
+          title={
+            hasSentOnTheWay
+              ? "On the way ✓"
+              : sendingEvent === "on_the_way"
+              ? "Sending..."
+              : "On the way"
+          }
           onPress={handleOnTheWay}
-          disabled={sendingEvent !== null}
+          disabled={hasSentOnTheWay || sendingEvent !== null}
         />
       </View>
 
@@ -155,7 +178,7 @@ export default function MatchDetailScreen() {
         <Button
           title={ending ? "Ending Match..." : "End Match"}
           onPress={handleEndMatch}
-          disabled={ending}
+          disabled={ending || sendingEvent !== null}
         />
       </View>
     </ScrollView>
