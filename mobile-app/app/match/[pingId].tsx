@@ -6,8 +6,9 @@ import { getMatchEvents } from "../../services/matchEvents";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { ScrollView } from "react-native-gesture-handler";
-import { addMatchEvent } from "../../services/matchEvents";
+// import { addMatchEvent } from "../../services/matchEvents";
 import { sendMatchEvent } from "../../services/matchEvents";
+import { supabase } from "../../lib/supabase";
 
 export default function MatchDetailScreen() {
   function formatEvent(type: string) {
@@ -61,10 +62,37 @@ export default function MatchDetailScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadEvents();
+      if (!pingId) return;
+
+      loadEvents(); // initial load
+
+      const channel = supabase
+        .channel(`match-events-${pingId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "match_events",
+            filter: `ping_id=eq.${pingId}`,
+          },
+          (payload) => {
+            setEvents((prev) => {
+              // prevent duplicates
+              if (prev.some((e) => e.id === payload.new.id)) {
+                return prev;
+              }
+              return [...prev, payload.new];
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }, [pingId])
   );
-  
 
   const handleOnTheWay = async () => {
     if (!pingId) return;
