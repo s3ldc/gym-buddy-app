@@ -17,9 +17,7 @@ export async function sendMatchEvent(
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session) {
-    throw new Error("Not authenticated");
-  }
+  if (!session) throw new Error("Not authenticated");
 
   const { error } = await supabase.from("match_events").insert({
     ping_id: pingId,
@@ -28,6 +26,10 @@ export async function sendMatchEvent(
   });
 
   if (error) {
+    if (error.code === "23505") {
+      // duplicate key → ignore
+      return;
+    }
     throw error;
   }
 }
@@ -49,17 +51,14 @@ export async function getMatchEvents(pingId: string) {
   return data ?? [];
 }
 
-export async function addMatchEvent(
-  pingId: string,
-  eventType: "on_the_way"
-) {
+export async function addMatchEvent(pingId: string, eventType: "on_the_way") {
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
   if (!session) {
     throw new Error("Not authenticated");
-  };
+  }
 
   const { error } = await supabase.from("match_events").insert({
     ping_id: pingId,

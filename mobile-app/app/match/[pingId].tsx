@@ -7,6 +7,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { ScrollView } from "react-native-gesture-handler";
 import { addMatchEvent } from "../../services/matchEvents";
+import { sendMatchEvent } from "../../services/matchEvents";
 
 export default function MatchDetailScreen() {
   function formatEvent(type: string) {
@@ -30,6 +31,7 @@ export default function MatchDetailScreen() {
     typeof params.pingId === "string" ? params.pingId : params.pingId?.[0];
 
   const [ending, setEnding] = useState(false);
+  const [sendingEvent, setSendingEvent] = useState<string | null>(null);
 
   const handleEndMatch = async () => {
     if (!pingId || ending) return;
@@ -62,15 +64,20 @@ export default function MatchDetailScreen() {
       loadEvents();
     }, [pingId])
   );
+  
 
   const handleOnTheWay = async () => {
     if (!pingId) return;
+    if (sendingEvent === "on_the_way") return; // 🔒 guard
 
     try {
-      await addMatchEvent(pingId, "on_the_way");
-      await loadEvents(); // refresh timeline immediately
+      setSendingEvent("on_the_way");
+      await sendMatchEvent(pingId, "on_the_way");
+      await loadEvents(); // refresh timeline
     } catch (err) {
       console.error("FAILED TO ADD EVENT", err);
+    } finally {
+      setSendingEvent(null);
     }
   };
 
@@ -109,7 +116,11 @@ export default function MatchDetailScreen() {
       </View>
 
       <View style={{ marginTop: 16 }}>
-        <Button title="On the way" onPress={handleOnTheWay} />
+        <Button
+          title={sendingEvent === "on_the_way" ? "Sending..." : "On the way"}
+          onPress={handleOnTheWay}
+          disabled={sendingEvent !== null}
+        />
       </View>
 
       <View style={{ marginTop: 24 }}>
