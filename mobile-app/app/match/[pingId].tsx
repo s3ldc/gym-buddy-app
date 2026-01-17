@@ -6,6 +6,7 @@ import { getMatchEvents } from "../../services/matchEvents";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { ScrollView } from "react-native-gesture-handler";
+import { addMatchEvent } from "../../services/matchEvents";
 
 export default function MatchDetailScreen() {
   function formatEvent(type: string) {
@@ -62,6 +63,17 @@ export default function MatchDetailScreen() {
     }, [pingId])
   );
 
+  const handleOnTheWay = async () => {
+    if (!pingId) return;
+
+    try {
+      await addMatchEvent(pingId, "on_the_way");
+      await loadEvents(); // refresh timeline immediately
+    } catch (err) {
+      console.error("FAILED TO ADD EVENT", err);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Workout Match</Text>
@@ -94,6 +106,10 @@ export default function MatchDetailScreen() {
             </Text>
           </View>
         ))}
+      </View>
+
+      <View style={{ marginTop: 16 }}>
+        <Button title="On the way" onPress={handleOnTheWay} />
       </View>
 
       <View style={{ marginTop: 24 }}>

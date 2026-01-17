@@ -48,3 +48,26 @@ export async function getMatchEvents(pingId: string) {
 
   return data ?? [];
 }
+
+export async function addMatchEvent(
+  pingId: string,
+  eventType: "on_the_way"
+) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    throw new Error("Not authenticated");
+  }
+
+  const { error } = await supabase.from("match_events").insert({
+    ping_id: pingId,
+    user_id: session.user.id,
+    event_type: eventType,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
