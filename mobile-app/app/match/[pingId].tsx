@@ -171,6 +171,16 @@ export default function MatchDetailScreen() {
     sentEventTypes.has("cant_make_it") ||
     events.some((e) => e.event_type === "cant_make_it");
 
+  const canSendOnTheWay =
+    !hasSentOnTheWay && !hasSentRunningLate && !hasSentAtGym && !hasSentCantMakeIt;
+
+  const canSendRunningLate =
+    hasSentOnTheWay && !hasSentRunningLate && !hasSentAtGym && !hasSentCantMakeIt;
+
+  const canSendAtGym = hasSentOnTheWay && !hasSentAtGym && !hasSentCantMakeIt;
+
+  const canSendCantMakeIt = !hasSentAtGym && !hasSentCantMakeIt;
+
   //   console.log("HAS SENT ON_THE_WAY:", hasSentOnTheWay);
 
   //   console.log(
@@ -215,7 +225,7 @@ export default function MatchDetailScreen() {
         <Button
           title={hasSentOnTheWay ? "On the way ✓" : "On the way"}
           onPress={() => handleSendEvent("on_the_way")}
-          disabled={hasSentOnTheWay || sendingEvent !== null}
+          disabled={!canSendOnTheWay || sendingEvent !== null}
         />
       </View>
 
@@ -223,7 +233,7 @@ export default function MatchDetailScreen() {
         <Button
           title={hasSentRunningLate ? "Running late ✓" : "Running late"}
           onPress={() => handleSendEvent("running_late")}
-          disabled={hasSentRunningLate || sendingEvent !== null}
+          disabled={!canSendRunningLate || sendingEvent !== null}
         />
       </View>
 
@@ -231,7 +241,7 @@ export default function MatchDetailScreen() {
         <Button
           title={hasSentAtGym ? "At the gym ✓" : "At the gym"}
           onPress={() => handleSendEvent("at_gym")}
-          disabled={hasSentAtGym || sendingEvent !== null}
+          disabled={!canSendAtGym || sendingEvent !== null}
         />
       </View>
 
@@ -239,7 +249,7 @@ export default function MatchDetailScreen() {
         <Button
           title={hasSentCantMakeIt ? "Can't Make It ✓" : "Can't Make It"}
           onPress={() => handleSendEvent("cant_make_it")}
-          disabled={hasSentCantMakeIt || sendingEvent !== null}
+          disabled={!canSendCantMakeIt || sendingEvent !== null}
         />
       </View>
 
