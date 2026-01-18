@@ -187,6 +187,15 @@ export default function MatchDetailScreen() {
   //   "EVENT TYPES:",
   //   events.map((e) => e.event_type)
   // );
+
+  const COLORS = {
+  blue: "#007AFF",
+  orange: "#FF9500",
+  green: "#34C759",
+  red: "#FF3B30",
+  gray: "#C7C7CC",
+};
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Workout Match</Text>
@@ -226,6 +235,7 @@ export default function MatchDetailScreen() {
           title={hasSentOnTheWay ? "On the way ✓" : "On the way"}
           onPress={() => handleSendEvent("on_the_way")}
           disabled={!canSendOnTheWay || sendingEvent !== null}
+          color={hasSentOnTheWay ? COLORS.gray : COLORS.blue}
         />
       </View>
 
@@ -234,6 +244,7 @@ export default function MatchDetailScreen() {
           title={hasSentRunningLate ? "Running late ✓" : "Running late"}
           onPress={() => handleSendEvent("running_late")}
           disabled={!canSendRunningLate || sendingEvent !== null}
+          color={hasSentRunningLate ? COLORS.gray : COLORS.orange}
         />
       </View>
 
@@ -242,6 +253,7 @@ export default function MatchDetailScreen() {
           title={hasSentAtGym ? "At the gym ✓" : "At the gym"}
           onPress={() => handleSendEvent("at_gym")}
           disabled={!canSendAtGym || sendingEvent !== null}
+          color={hasSentAtGym ? COLORS.gray : COLORS.green}
         />
       </View>
 
@@ -250,6 +262,7 @@ export default function MatchDetailScreen() {
           title={hasSentCantMakeIt ? "Can't Make It ✓" : "Can't Make It"}
           onPress={() => handleSendEvent("cant_make_it")}
           disabled={!canSendCantMakeIt || sendingEvent !== null}
+          color={hasSentCantMakeIt ? COLORS.gray : COLORS.red}
         />
       </View>
 
