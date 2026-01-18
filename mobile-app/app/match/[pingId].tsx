@@ -26,6 +26,21 @@ export default function MatchDetailScreen() {
     }
   }
 
+  const handleSendEvent = async (type: MatchEventType) => {
+  if (!pingId) return;
+  if (sendingEvent) return;
+
+  try {
+    setSendingEvent(type);
+    await sendMatchEvent(pingId, type);
+  } catch (err) {
+    console.error("FAILED TO ADD EVENT", err);
+  } finally {
+    setSendingEvent(null);
+  }
+};
+
+
   const params = useLocalSearchParams<{ pingId: string | string[] }>();
 
   const pingId =
@@ -129,6 +144,18 @@ export default function MatchDetailScreen() {
     sentEventTypes.has("on_the_way") ||
     events.some((e) => e.event_type === "on_the_way");
 
+    const hasSentAtGym =
+    sentEventTypes.has("at_gym") ||
+    events.some((e) => e.event_type === "at_gym");
+
+      const hasSentRunningLate =
+    sentEventTypes.has("running_late") ||
+    events.some((e) => e.event_type === "running_late");
+
+      const hasSentCantMakeIt =
+    sentEventTypes.has("cant_make_it") ||
+    events.some((e) => e.event_type === "cant_make_it");
+
   //   console.log("HAS SENT ON_THE_WAY:", hasSentOnTheWay);
 
   //   console.log(
@@ -170,18 +197,37 @@ export default function MatchDetailScreen() {
       </View>
 
       <View style={{ marginTop: 16 }}>
-        <Button
-          title={
-            hasSentOnTheWay
-              ? "On the way ✓"
-              : sendingEvent === "on_the_way"
-              ? "Sending..."
-              : "On the way"
-          }
-          onPress={handleOnTheWay}
-          disabled={hasSentOnTheWay || sendingEvent !== null}
-        />
-      </View>
+  <Button
+    title={hasSentOnTheWay ? "On the way ✓" : "On the way"}
+    onPress={() => handleSendEvent("on_the_way")}
+    disabled={hasSentOnTheWay || sendingEvent !== null}
+  />
+</View>
+
+<View style={{ marginTop: 12 }}>
+  <Button
+    title={hasSentRunningLate ? "Running late ✓" : "Running late"}
+    onPress={() => handleSendEvent("running_late")}
+    disabled={hasSentRunningLate || sendingEvent !== null}
+  />
+</View>
+
+<View style={{ marginTop: 12 }}>
+  <Button
+    title={hasSentAtGym ? "At the gym ✓" : "At the gym"}
+    onPress={() => handleSendEvent("at_gym")}
+    disabled={hasSentAtGym || sendingEvent !== null}
+  />
+</View>
+
+<View style={{ marginTop: 12 }}>
+  <Button
+    title={hasSentAtGym ? "Can't Make It ✓" : "Can't Make It"}
+    onPress={() => handleSendEvent("cant_make_it")}
+    disabled={hasSentAtGym || sendingEvent !== null}
+  />
+</View>
+
 
       <View style={{ marginTop: 24 }}>
         <Button
