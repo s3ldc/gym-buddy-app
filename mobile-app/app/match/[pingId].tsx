@@ -9,6 +9,7 @@ import { ScrollView } from "react-native";
 // import { addMatchEvent } from "../../services/matchEvents";
 import { sendMatchEvent } from "../../services/matchEvents";
 import { supabase } from "../../lib/supabase";
+import type { MatchEventType } from "../../services/matchEvents";
 
 export default function MatchDetailScreen() {
   function formatEvent(type: string) {
@@ -27,19 +28,33 @@ export default function MatchDetailScreen() {
   }
 
   const handleSendEvent = async (type: MatchEventType) => {
-  if (!pingId) return;
-  if (sendingEvent) return;
+    if (!pingId) return;
+    if (sendingEvent) return;
 
-  try {
-    setSendingEvent(type);
-    await sendMatchEvent(pingId, type);
-  } catch (err) {
-    console.error("FAILED TO ADD EVENT", err);
-  } finally {
-    setSendingEvent(null);
-  }
-};
+    try {
+      setSendingEvent(type);
 
+      // ✅ optimistic disable
+      setSentEventTypes((prev) => {
+        const next = new Set(prev);
+        next.add(type);
+        return next;
+      });
+
+      await sendMatchEvent(pingId, type);
+    } catch (err) {
+      console.error("FAILED TO ADD EVENT", err);
+
+      // rollback
+      setSentEventTypes((prev) => {
+        const next = new Set(prev);
+        next.delete(type);
+        return next;
+      });
+    } finally {
+      setSendingEvent(null);
+    }
+  };
 
   const params = useLocalSearchParams<{ pingId: string | string[] }>();
 
@@ -105,54 +120,54 @@ export default function MatchDetailScreen() {
               next.add(payload.new.event_type);
               return next;
             });
-          }
+          },
         )
         .subscribe();
 
       return () => {
         supabase.removeChannel(channel);
       };
-    }, [pingId])
+    }, [pingId]),
   );
 
-  const handleOnTheWay = async () => {
-    if (!pingId) return;
-    if (hasSentOnTheWay) return;
+  // const handleOnTheWay = async () => {
+  //   if (!pingId) return;
+  //   if (hasSentOnTheWay) return;
 
-    try {
-      setSendingEvent("on_the_way");
+  //   try {
+  //     setSendingEvent("on_the_way");
 
-      // ✅ optimistic update (THIS IS THE KEY)
-      setSentEventTypes((prev) => new Set(prev).add("on_the_way"));
+  //     // ✅ optimistic update (THIS IS THE KEY)
+  //     setSentEventTypes((prev) => new Set(prev).add("on_the_way"));
 
-      await sendMatchEvent(pingId, "on_the_way");
-    } catch (err) {
-      console.error("FAILED TO ADD EVENT", err);
+  //     await sendMatchEvent(pingId, "on_the_way");
+  //   } catch (err) {
+  //     console.error("FAILED TO ADD EVENT", err);
 
-      // rollback if needed
-      setSentEventTypes((prev) => {
-        const next = new Set(prev);
-        next.delete("on_the_way");
-        return next;
-      });
-    } finally {
-      setSendingEvent(null);
-    }
-  };
+  //     // rollback if needed
+  //     setSentEventTypes((prev) => {
+  //       const next = new Set(prev);
+  //       next.delete("on_the_way");
+  //       return next;
+  //     });
+  //   } finally {
+  //     setSendingEvent(null);
+  //   }
+  // };
 
   const hasSentOnTheWay =
     sentEventTypes.has("on_the_way") ||
     events.some((e) => e.event_type === "on_the_way");
 
-    const hasSentAtGym =
+  const hasSentAtGym =
     sentEventTypes.has("at_gym") ||
     events.some((e) => e.event_type === "at_gym");
 
-      const hasSentRunningLate =
+  const hasSentRunningLate =
     sentEventTypes.has("running_late") ||
     events.some((e) => e.event_type === "running_late");
 
-      const hasSentCantMakeIt =
+  const hasSentCantMakeIt =
     sentEventTypes.has("cant_make_it") ||
     events.some((e) => e.event_type === "cant_make_it");
 
@@ -197,37 +212,36 @@ export default function MatchDetailScreen() {
       </View>
 
       <View style={{ marginTop: 16 }}>
-  <Button
-    title={hasSentOnTheWay ? "On the way ✓" : "On the way"}
-    onPress={() => handleSendEvent("on_the_way")}
-    disabled={hasSentOnTheWay || sendingEvent !== null}
-  />
-</View>
+        <Button
+          title={hasSentOnTheWay ? "On the way ✓" : "On the way"}
+          onPress={() => handleSendEvent("on_the_way")}
+          disabled={hasSentOnTheWay || sendingEvent !== null}
+        />
+      </View>
 
-<View style={{ marginTop: 12 }}>
-  <Button
-    title={hasSentRunningLate ? "Running late ✓" : "Running late"}
-    onPress={() => handleSendEvent("running_late")}
-    disabled={hasSentRunningLate || sendingEvent !== null}
-  />
-</View>
+      <View style={{ marginTop: 12 }}>
+        <Button
+          title={hasSentRunningLate ? "Running late ✓" : "Running late"}
+          onPress={() => handleSendEvent("running_late")}
+          disabled={hasSentRunningLate || sendingEvent !== null}
+        />
+      </View>
 
-<View style={{ marginTop: 12 }}>
-  <Button
-    title={hasSentAtGym ? "At the gym ✓" : "At the gym"}
-    onPress={() => handleSendEvent("at_gym")}
-    disabled={hasSentAtGym || sendingEvent !== null}
-  />
-</View>
+      <View style={{ marginTop: 12 }}>
+        <Button
+          title={hasSentAtGym ? "At the gym ✓" : "At the gym"}
+          onPress={() => handleSendEvent("at_gym")}
+          disabled={hasSentAtGym || sendingEvent !== null}
+        />
+      </View>
 
-<View style={{ marginTop: 12 }}>
-  <Button
-    title={hasSentAtGym ? "Can't Make It ✓" : "Can't Make It"}
-    onPress={() => handleSendEvent("cant_make_it")}
-    disabled={hasSentAtGym || sendingEvent !== null}
-  />
-</View>
-
+      <View style={{ marginTop: 12 }}>
+        <Button
+          title={hasSentCantMakeIt ? "Can't Make It ✓" : "Can't Make It"}
+          onPress={() => handleSendEvent("cant_make_it")}
+          disabled={hasSentCantMakeIt || sendingEvent !== null}
+        />
+      </View>
 
       <View style={{ marginTop: 24 }}>
         <Button
