@@ -4,7 +4,7 @@ import { endMatch } from "../../services/pings";
 import { useEffect, useState } from "react";
 import { getMatchEvents } from "../../services/matchEvents";
 import { useFocusEffect } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { ScrollView } from "react-native";
 // import { addMatchEvent } from "../../services/matchEvents";
 import { sendMatchEvent } from "../../services/matchEvents";
@@ -75,6 +75,7 @@ export default function MatchDetailScreen() {
 
   const [ending, setEnding] = useState(false);
   const [sendingEvent, setSendingEvent] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const handleEndMatch = async () => {
     if (!pingId || ending) return;
@@ -123,7 +124,7 @@ export default function MatchDetailScreen() {
       if (!pingId) return;
 
       loadEvents(); // initial load
-      loadMessages();   // 🔥 THIS IS THE KEY FIX
+      loadMessages(); // 🔥 THIS IS THE KEY FIX
 
       const channel = supabase
         .channel(`match-events-${pingId}`)
@@ -165,7 +166,26 @@ export default function MatchDetailScreen() {
           },
           (payload) => {
             setMessages((prev) => {
-              if (prev.some((m) => m.id === payload.new.id)) return prev;
+              // If this message already exists (by id OR by content+sender), skip
+              if (
+                prev.some(
+                  (m) =>
+                    m.id === payload.new.id ||
+                    (m.optimistic &&
+                      m.message === payload.new.message &&
+                      m.from_user_id === payload.new.from_user_id),
+                )
+              ) {
+                // Replace optimistic one with real one
+                return prev.map((m) =>
+                  m.optimistic &&
+                  m.message === payload.new.message &&
+                  m.from_user_id === payload.new.from_user_id
+                    ? payload.new
+                    : m,
+                );
+              }
+
               return [...prev, payload.new];
             });
           },
@@ -176,7 +196,7 @@ export default function MatchDetailScreen() {
         supabase.removeChannel(channel);
         supabase.removeChannel(chatChannel);
       };
-    }, [pingId])
+    }, [pingId]),
   );
 
   // const handleOnTheWay = async () => {
@@ -253,7 +273,13 @@ export default function MatchDetailScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      ref={scrollRef}
+      style={styles.container}
+      onContentSizeChange={() =>
+        scrollRef.current?.scrollToEnd({ animated: true })
+      }
+    >
       <Text style={styles.title}>Workout Match</Text>
 
       <Text style={styles.info}>You’re matched and ready to work out.</Text>
@@ -357,8 +383,26 @@ export default function MatchDetailScreen() {
 
             try {
               setSendingMessage(true);
-              await sendMatchMessage(pingId, newMessage.trim());
+
+              const tempId = `temp-${Date.now()}`;
+
+              // ✅ Optimistic insert
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: tempId,
+                  ping_id: pingId,
+                  from_user_id: myUserId,
+                  message: newMessage.trim(),
+                  created_at: new Date().toISOString(),
+                  optimistic: true,
+                },
+              ]);
+
+              const text = newMessage.trim();
               setNewMessage("");
+
+              await sendMatchMessage(pingId, text);
             } catch (err) {
               console.error("FAILED TO SEND MESSAGE", err);
             } finally {
