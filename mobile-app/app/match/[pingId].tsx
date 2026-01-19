@@ -101,6 +101,17 @@ export default function MatchDetailScreen() {
       console.error("FAILED TO LOAD MATCH EVENTS", err);
     }
   };
+  const loadMessages = async () => {
+    if (!pingId) return;
+
+    try {
+      const data = await getMatchMessages(pingId);
+      setMessages(data);
+    } catch (err) {
+      console.error("FAILED TO LOAD MESSAGES", err);
+    }
+  };
+
   const [sentEventTypes, setSentEventTypes] = useState<Set<string>>(new Set());
 
   const [messages, setMessages] = useState<any[]>([]);
@@ -112,6 +123,7 @@ export default function MatchDetailScreen() {
       if (!pingId) return;
 
       loadEvents(); // initial load
+      loadMessages();   // 🔥 THIS IS THE KEY FIX
 
       const channel = supabase
         .channel(`match-events-${pingId}`)
@@ -164,7 +176,7 @@ export default function MatchDetailScreen() {
         supabase.removeChannel(channel);
         supabase.removeChannel(chatChannel);
       };
-    }, [pingId]),
+    }, [pingId])
   );
 
   // const handleOnTheWay = async () => {
@@ -339,6 +351,7 @@ export default function MatchDetailScreen() {
         <Button
           title={sendingMessage ? "..." : "Send"}
           disabled={sendingMessage || newMessage.trim() === ""}
+          color={hasSentAtGym ? COLORS.gray : COLORS.green}
           onPress={async () => {
             if (!pingId || !newMessage.trim()) return;
 
