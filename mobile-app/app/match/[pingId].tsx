@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, Button } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { endMatch } from "../../services/pings";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getMatchEvents } from "../../services/matchEvents";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
@@ -10,6 +10,11 @@ import { ScrollView } from "react-native";
 import { sendMatchEvent } from "../../services/matchEvents";
 import { supabase } from "../../lib/supabase";
 import type { MatchEventType } from "../../services/matchEvents";
+import {
+  getMatchMessages,
+  sendMatchMessage,
+} from "../../services/matchMessages";
+import { TextInput } from "react-native";
 
 export default function MatchDetailScreen() {
   function formatEvent(type: string) {
@@ -26,6 +31,18 @@ export default function MatchDetailScreen() {
         return type;
     }
   }
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setMyUserId(data.session?.user.id ?? null);
+    });
+  }, []);
+
+  const params = useLocalSearchParams<{ pingId: string | string[] }>();
+
+  const pingId =
+    typeof params.pingId === "string" ? params.pingId : params.pingId?.[0];
 
   const handleSendEvent = async (type: MatchEventType) => {
     if (!pingId) return;
@@ -56,11 +73,6 @@ export default function MatchDetailScreen() {
     }
   };
 
-  const params = useLocalSearchParams<{ pingId: string | string[] }>();
-
-  const pingId =
-    typeof params.pingId === "string" ? params.pingId : params.pingId?.[0];
-
   const [ending, setEnding] = useState(false);
   const [sendingEvent, setSendingEvent] = useState<string | null>(null);
 
@@ -90,6 +102,10 @@ export default function MatchDetailScreen() {
     }
   };
   const [sentEventTypes, setSentEventTypes] = useState<Set<string>>(new Set());
+
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -124,8 +140,29 @@ export default function MatchDetailScreen() {
         )
         .subscribe();
 
+      // 🔔 Chat realtime
+      const chatChannel = supabase
+        .channel(`match-chat-${pingId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "match_messages",
+            filter: `ping_id=eq.${pingId}`,
+          },
+          (payload) => {
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === payload.new.id)) return prev;
+              return [...prev, payload.new];
+            });
+          },
+        )
+        .subscribe();
+
       return () => {
         supabase.removeChannel(channel);
+        supabase.removeChannel(chatChannel);
       };
     }, [pingId]),
   );
@@ -172,14 +209,21 @@ export default function MatchDetailScreen() {
     events.some((e) => e.event_type === "cant_make_it");
 
   const canSendOnTheWay =
-    !hasSentOnTheWay && !hasSentRunningLate && !hasSentAtGym && !hasSentCantMakeIt;
+    !hasSentOnTheWay &&
+    !hasSentRunningLate &&
+    !hasSentAtGym &&
+    !hasSentCantMakeIt;
 
   const canSendRunningLate =
-    hasSentOnTheWay && !hasSentRunningLate && !hasSentAtGym && !hasSentCantMakeIt;
+    hasSentOnTheWay &&
+    !hasSentRunningLate &&
+    !hasSentAtGym &&
+    !hasSentCantMakeIt;
 
   const canSendAtGym = hasSentOnTheWay && !hasSentAtGym && !hasSentCantMakeIt;
 
-  const canSendCantMakeIt = !hasSentAtGym && !hasSentCantMakeIt;
+  const canSendCantMakeIt =
+    hasSentOnTheWay && !hasSentAtGym && !hasSentCantMakeIt;
 
   //   console.log("HAS SENT ON_THE_WAY:", hasSentOnTheWay);
 
@@ -189,12 +233,12 @@ export default function MatchDetailScreen() {
   // );
 
   const COLORS = {
-  blue: "#007AFF",
-  orange: "#FF9500",
-  green: "#34C759",
-  red: "#FF3B30",
-  gray: "#C7C7CC",
-};
+    blue: "#007AFF",
+    orange: "#FF9500",
+    green: "#34C759",
+    red: "#FF3B30",
+    gray: "#C7C7CC",
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -228,6 +272,87 @@ export default function MatchDetailScreen() {
             </Text>
           </View>
         ))}
+      </View>
+
+      <View style={{ marginTop: 24 }}>
+        <Text style={{ fontWeight: "600", marginBottom: 8 }}>Chat</Text>
+
+        {messages.length === 0 && (
+          <Text style={{ color: "#777" }}>No messages yet.</Text>
+        )}
+
+        {messages.map((msg) => {
+          const isMine = msg.from_user_id === myUserId;
+
+          return (
+            <View
+              key={msg.id}
+              style={{
+                alignSelf: isMine ? "flex-end" : "flex-start",
+                backgroundColor: isMine ? "#DCF8C6" : "#E5E5EA",
+                padding: 10,
+                borderRadius: 12,
+                marginVertical: 4,
+                maxWidth: "75%",
+              }}
+            >
+              <Text style={{ fontSize: 15 }}>{msg.message}</Text>
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: "#555",
+                  marginTop: 4,
+                  alignSelf: "flex-end",
+                }}
+              >
+                {new Date(msg.created_at).toLocaleTimeString()}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginTop: 12,
+          borderTopWidth: 1,
+          borderColor: "#ddd",
+          paddingTop: 8,
+        }}
+      >
+        <TextInput
+          value={newMessage}
+          onChangeText={setNewMessage}
+          placeholder="Type a message..."
+          style={{
+            flex: 1,
+            borderWidth: 1,
+            borderColor: "#ccc",
+            borderRadius: 20,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            marginRight: 8,
+          }}
+        />
+
+        <Button
+          title={sendingMessage ? "..." : "Send"}
+          disabled={sendingMessage || newMessage.trim() === ""}
+          onPress={async () => {
+            if (!pingId || !newMessage.trim()) return;
+
+            try {
+              setSendingMessage(true);
+              await sendMatchMessage(pingId, newMessage.trim());
+              setNewMessage("");
+            } catch (err) {
+              console.error("FAILED TO SEND MESSAGE", err);
+            } finally {
+              setSendingMessage(false);
+            }
+          }}
+        />
       </View>
 
       <View style={{ marginTop: 16 }}>
