@@ -11,7 +11,7 @@ import { getNearbyAvailabilities } from "../../services/discovery";
 import { formatDistance } from "../../utils/distance";
 import Slider from "@react-native-community/slider";
 import { ActivityIndicator } from "react-native";
-import { sendPing } from "../../services/pings";
+import { hasMyActiveMatch, sendPing } from "../../services/pings";
 import { getMyAcceptedPings } from "../../services/pings";
 import { getMySentPendingPings } from "../../services/pings";
 import { router } from "expo-router";
@@ -43,7 +43,7 @@ export default function HomeScreen() {
   const [pingingUserId, setPingingUserId] = useState<string | null>(null);
   const [matchedUserIds, setMatchedUserIds] = useState<Set<string>>(new Set());
   const [matchByUserId, setMatchByUserId] = useState<Record<string, string>>(
-    {}
+    {},
   );
   const params = useLocalSearchParams();
   const hasActiveMatch = matchedUserIds.size > 0;
@@ -138,6 +138,8 @@ export default function HomeScreen() {
   // }, [available, params?.refresh]);
 
   // Restore availability on app load
+
+  //  const hasMatch = await hasMyActiveMatch();
   useEffect(() => {
     if (!location) return;
 
@@ -145,17 +147,27 @@ export default function HomeScreen() {
       try {
         const row = await getMyAvailability();
 
+        // 🔍 check if user has active match
+        const hasMatch = await hasMyActiveMatch();
+
         if (!row) {
           setAvailable(false);
         } else {
           const isExpired = new Date(row.expires_at) < new Date();
-          setAvailable(row.status && !isExpired);
+
+          if (hasMatch) {
+            // 🔒 FORCE availability ON while matched
+            setAvailable(true);
+          } else {
+            setAvailable(row.status && !isExpired);
+          }
 
           // ✅ restore saved radius
           if (row.radius_km) {
             setRadiusKm(row.radius_km);
           }
 
+          // ✅ restore workout type
           if (row?.workout_type) {
             setSelectedWorkout(row.workout_type);
           }
@@ -170,6 +182,8 @@ export default function HomeScreen() {
     restoreAvailability();
   }, [location]);
 
+ 
+
   // Fetch nearby users
   const fetchNearby = async () => {
     if (!location) return;
@@ -180,7 +194,7 @@ export default function HomeScreen() {
       const users = await getNearbyAvailabilities(
         location.latitude,
         location.longitude,
-        radiusKm
+        radiusKm,
       );
 
       setNearbyUsers(users);
@@ -229,14 +243,13 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-
       if (available) {
         loadMatches();
         restoreSentPings();
       }
 
       return () => {};
-    }, [available])
+    }, [available]),
   );
 
   // Logout
