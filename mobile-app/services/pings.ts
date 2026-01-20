@@ -216,7 +216,7 @@ export async function hasMyActiveMatch() {
     return false;
   }
 
-  console.log("CHECKING MATCH FOR USER:", session.user.id);
+  // console.log("CHECKING MATCH FOR USER:", session.user.id);
 
   const { data, error } = await supabase
     .from("pings")
@@ -228,7 +228,7 @@ export async function hasMyActiveMatch() {
     return false;
   }
 
-  console.log("ALL ACCEPTED PINGS:", data);
+  // console.log("ALL ACCEPTED PINGS:", data);
 
   const matches = (data ?? []).filter(
     (p) =>
@@ -236,7 +236,7 @@ export async function hasMyActiveMatch() {
       p.to_user_id === session.user.id
   );
 
-  console.log("FILTERED MATCHES:", matches);
+  // console.log("FILTERED MATCHES:", matches);
 
   return matches.length > 0;
 }

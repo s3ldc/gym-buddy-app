@@ -33,14 +33,18 @@ export async function markMessagesSeen(pingId: string) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session) throw new Error("Not authenticated");
+  if (!session) return;
 
-  const { error } = await supabase
+  const myId = session.user.id;
+
+  // console.log("MARKING SEEN AS USER:", myId);
+
+  const { data, error } = await supabase
     .from("match_messages")
     .update({ seen_at: new Date().toISOString() })
     .eq("ping_id", pingId)
-    .neq("from_user_id", session.user.id) // only mark partner's messages
-    .is("seen_at", null); // only unseen ones
+    .is("seen_at", null)
+    .neq("from_user_id", myId);
 
-  if (error) throw error;
+  // console.log("SEEN UPDATE RESULT:", { data, error });
 }
