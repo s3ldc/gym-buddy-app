@@ -199,6 +199,12 @@ export default function MatchDetailScreen() {
     }, [pingId]),
   );
 
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollToEnd({ animated: true });
+    }
+  }, [messages]);
+
   // const handleOnTheWay = async () => {
   //   if (!pingId) return;
   //   if (hasSentOnTheWay) return;
@@ -276,9 +282,9 @@ export default function MatchDetailScreen() {
     <ScrollView
       ref={scrollRef}
       style={styles.container}
-      onContentSizeChange={() =>
-        scrollRef.current?.scrollToEnd({ animated: true })
-      }
+      // onContentSizeChange={() =>
+      //   scrollRef.current?.scrollToEnd({ animated: true })
+      // }
     >
       <Text style={styles.title}>Workout Match</Text>
 
@@ -377,7 +383,7 @@ export default function MatchDetailScreen() {
         <Button
           title={sendingMessage ? "..." : "Send"}
           disabled={sendingMessage || newMessage.trim() === ""}
-          color={hasSentAtGym ? COLORS.gray : COLORS.green}
+          color={COLORS.green}
           onPress={async () => {
             if (!pingId || !newMessage.trim()) return;
 
