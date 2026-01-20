@@ -32,6 +32,7 @@ export default function MatchDetailScreen() {
     }
   }
   const [myUserId, setMyUserId] = useState<string | null>(null);
+  const chatChannelRef = useRef<any>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -72,6 +73,8 @@ export default function MatchDetailScreen() {
       setSendingEvent(null);
     }
   };
+
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [ending, setEnding] = useState(false);
   const [sendingEvent, setSendingEvent] = useState<string | null>(null);
@@ -119,9 +122,12 @@ export default function MatchDetailScreen() {
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  const [isTyping, setIsTyping] = useState(false); // me typing
+  const [partnerTyping, setPartnerTyping] = useState(false); // other user typing
+
   useFocusEffect(
     useCallback(() => {
-      if (!pingId) return;
+      if (!pingId || !myUserId) return;
 
       loadEvents(); // initial load
       loadMessages(); // 🔥 THIS IS THE KEY FIX
@@ -154,8 +160,16 @@ export default function MatchDetailScreen() {
         .subscribe();
 
       // 🔔 Chat realtime
-      const chatChannel = supabase
-        .channel(`match-chat-${pingId}`)
+      chatChannelRef.current = supabase
+        .channel(`match-chat-${pingId}`, {
+          config: {
+            presence: {
+              key: myUserId, // each user tracked by user id
+            },
+          },
+        })
+
+        // 🔔 Listen for new messages (UNCHANGED LOGIC)
         .on(
           "postgres_changes",
           {
@@ -166,7 +180,6 @@ export default function MatchDetailScreen() {
           },
           (payload) => {
             setMessages((prev) => {
-              // If this message already exists (by id OR by content+sender), skip
               if (
                 prev.some(
                   (m) =>
@@ -176,7 +189,6 @@ export default function MatchDetailScreen() {
                       m.from_user_id === payload.new.from_user_id),
                 )
               ) {
-                // Replace optimistic one with real one
                 return prev.map((m) =>
                   m.optimistic &&
                   m.message === payload.new.message &&
@@ -190,13 +202,31 @@ export default function MatchDetailScreen() {
             });
           },
         )
-        .subscribe();
+
+        // 👀 Presence updates (typing indicator comes from here)
+        .on("presence", { event: "sync" }, () => {
+          const state = chatChannelRef.current.presenceState();
+
+          // Anyone else typing?
+          const othersTyping = Object.keys(state).some(
+            (key) => key !== myUserId && state[key]?.[0]?.typing === true,
+          );
+
+          setPartnerTyping(othersTyping);
+        })
+
+        .subscribe(async (status) => {
+          if (status === "SUBSCRIBED") {
+            // announce yourself as not typing initially
+            await chatChannelRef.current.track({ typing: false });
+          }
+        });
 
       return () => {
         supabase.removeChannel(channel);
-        supabase.removeChannel(chatChannel);
+        supabase.removeChannel(chatChannelRef.current);
       };
-    }, [pingId]),
+    }, [pingId, myUserId]),
   );
 
   useEffect(() => {
@@ -319,7 +349,13 @@ export default function MatchDetailScreen() {
       </View>
 
       <View style={{ marginTop: 24 }}>
-        <Text style={{ fontWeight: "600", marginBottom: 8 }}>Chat</Text>
+        <Text style={{ fontWeight: "600", marginBottom: 4 }}>Chat</Text>
+
+        {partnerTyping && (
+          <Text style={{ fontSize: 12, color: "#777", marginBottom: 8 }}>
+            Partner is typing...
+          </Text>
+        )}
 
         {messages.length === 0 && (
           <Text style={{ color: "#777" }}>No messages yet.</Text>
@@ -367,7 +403,25 @@ export default function MatchDetailScreen() {
       >
         <TextInput
           value={newMessage}
-          onChangeText={setNewMessage}
+          onChangeText={(text) => {
+            setNewMessage(text);
+
+            if (!isTyping) {
+              setIsTyping(true);
+              chatChannel?.track({ typing: true });
+            }
+
+            // clear previous timer
+            if (typingTimeoutRef.current) {
+              clearTimeout(typingTimeoutRef.current);
+            }
+
+            // set new timer
+            typingTimeoutRef.current = setTimeout(() => {
+              setIsTyping(false);
+              chatChannel?.track({ typing: false });
+            }, 1500);
+          }}
           placeholder="Type a message..."
           style={{
             flex: 1,
@@ -404,6 +458,10 @@ export default function MatchDetailScreen() {
                   optimistic: true,
                 },
               ]);
+
+              // stop typing immediately on send
+              setIsTyping(false);
+              chatChannelRef.current?.track({ typing: false });
 
               const text = newMessage.trim();
               setNewMessage("");
