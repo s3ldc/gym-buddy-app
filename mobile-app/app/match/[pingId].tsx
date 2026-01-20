@@ -15,6 +15,7 @@ import {
   sendMatchMessage,
 } from "../../services/matchMessages";
 import { TextInput } from "react-native";
+import { markMessagesSeen } from "../../services/matchMessages";
 
 export default function MatchDetailScreen() {
   function formatEvent(type: string) {
@@ -132,6 +133,8 @@ export default function MatchDetailScreen() {
       loadEvents(); // initial load
       loadMessages(); // 🔥 THIS IS THE KEY FIX
 
+      markMessagesSeen(pingId);
+
       const channel = supabase
         .channel(`match-events-${pingId}`)
         .on(
@@ -200,6 +203,21 @@ export default function MatchDetailScreen() {
 
               return [...prev, payload.new];
             });
+          },
+        )
+
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "match_messages",
+            filter: `ping_id=eq.${pingId}`,
+          },
+          (payload) => {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === payload.new.id ? payload.new : m)),
+            );
           },
         )
 
@@ -386,6 +404,11 @@ export default function MatchDetailScreen() {
                 }}
               >
                 {new Date(msg.created_at).toLocaleTimeString()}
+                {isMine && (
+                  <Text style={{ marginLeft: 6 }}>
+                    {msg.seen_at ? " ✓✓ Seen" : " ✓ Sent"}
+                  </Text>
+                )}
               </Text>
             </View>
           );
@@ -408,7 +431,7 @@ export default function MatchDetailScreen() {
 
             if (!isTyping) {
               setIsTyping(true);
-              chatChannel?.track({ typing: true });
+              chatChannelRef.current?.track({ typing: true });
             }
 
             // clear previous timer
@@ -419,7 +442,7 @@ export default function MatchDetailScreen() {
             // set new timer
             typingTimeoutRef.current = setTimeout(() => {
               setIsTyping(false);
-              chatChannel?.track({ typing: false });
+              chatChannelRef.current?.track({ typing: false });
             }, 1500);
           }}
           placeholder="Type a message..."
