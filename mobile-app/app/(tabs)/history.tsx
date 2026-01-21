@@ -67,7 +67,7 @@ export default function HistoryScreen() {
       <Text style={styles.title}>Past Matches</Text>
 
       {matches.map((row) => {
-        if (!myUserId) return null;
+        if (!myUserId) return null
 
         const partnerId =
           row.from_user_id === myUserId ? row.to_user_id : row.from_user_id;
