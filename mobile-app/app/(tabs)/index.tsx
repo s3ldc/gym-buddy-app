@@ -241,6 +241,51 @@ export default function HomeScreen() {
     }, [location, available, radiusKm]),
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      const setupRealtime = async () => {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) return;
+
+        const myId = session.user.id;
+
+        const pingChannel = supabase
+          .channel(`pings-${myId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "pings",
+              filter: `status=eq.accepted`,
+            },
+            (payload) => {
+              const row = payload.new;
+
+              // If this match involves me
+              if (row.from_user_id === myId || row.to_user_id === myId) {
+                // console.log("MATCH ACCEPTED IN REALTIME", row.id);
+
+                // Refresh match state
+                loadMatches();
+                restoreSentPings();
+              }
+            },
+          )
+          .subscribe();
+
+        return () => {
+          supabase.removeChannel(pingChannel);
+        };
+      };
+
+      setupRealtime();
+    }, []),
+  );
+
   // Toggle availability
   const handleAvailabilityChange = async (value: boolean) => {
     setAvailable(value);
