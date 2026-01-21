@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { getMyPastMatches } from "../../services/pings";
+import { getLastMessageForPing } from "../../services/matchMessages";
 
 export default function HistoryScreen() {
   const [matches, setMatches] = useState<any[]>([]);
@@ -19,8 +20,20 @@ export default function HistoryScreen() {
       setMyUserId(session.user.id);
 
       try {
-        const data = await getMyPastMatches();
-        setMatches(data);
+        const rawMatches = await getMyPastMatches();
+
+        const enriched = await Promise.all(
+          rawMatches.map(async (row) => {
+            const lastMessage = await getLastMessageForPing(row.id);
+
+            return {
+              ...row,
+              lastMessage, // attach last message preview
+            };
+          }),
+        );
+
+        setMatches(enriched);
       } catch (err) {
         console.error("FAILED TO LOAD HISTORY", err);
       } finally {
@@ -61,9 +74,7 @@ export default function HistoryScreen() {
 
         return (
           <View key={row.id} style={styles.card}>
-            <Text style={styles.partner}>
-              Partner: ...{shortPartnerId}
-            </Text>
+            <Text style={styles.partner}>Partner: ...{shortPartnerId}</Text>
 
             <Text style={styles.meta}>
               Ended at:{" "}
@@ -71,6 +82,12 @@ export default function HistoryScreen() {
                 ? new Date(row.ended_at).toLocaleString()
                 : "Unknown"}
             </Text>
+
+            {row.lastMessage && (
+              <Text style={{ color: "#666", marginTop: 4 }} numberOfLines={1}>
+                {row.lastMessage.message}
+              </Text>
+            )}
           </View>
         );
       })}

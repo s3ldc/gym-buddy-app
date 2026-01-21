@@ -48,3 +48,21 @@ export async function markMessagesSeen(pingId: string) {
 
   // console.log("SEEN UPDATE RESULT:", { data, error });
 }
+
+export async function getLastMessageForPing(pingId: string) {
+  const { data, error } = await supabase
+    .from("match_messages")
+    .select("message, created_at")
+    .eq("ping_id", pingId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("FAILED TO LOAD LAST MESSAGE", error);
+    return null;
+  }
+
+  return data; // { message, created_at } | null
+}
+
