@@ -241,5 +241,32 @@ export async function hasMyActiveMatch() {
   return matches.length > 0;
 }
 
+export async function getMyPastMatches() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    throw new Error("Not authenticated");
+  }
+
+  const myUserId = session.user.id;
+
+  const { data, error } = await supabase
+    .from("pings")
+    .select("*")
+    .or(
+      `from_user_id.eq.${myUserId},to_user_id.eq.${myUserId}`
+    )
+    .eq("status", "ended")
+    .order("ended_at", { ascending: false });
+
+  if (error) {
+    console.error("FAILED TO LOAD PAST MATCHES", error);
+    throw error;
+  }
+
+  return data ?? [];
+}
 
 
