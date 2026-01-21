@@ -181,28 +181,41 @@ export default function MatchDetailScreen() {
             table: "match_messages",
             filter: `ping_id=eq.${pingId}`,
           },
-          (payload) => {
+          async (payload) => {
+            const newMsg = payload.new;
+
             setMessages((prev) => {
               if (
                 prev.some(
                   (m) =>
-                    m.id === payload.new.id ||
+                    m.id === newMsg.id ||
                     (m.optimistic &&
-                      m.message === payload.new.message &&
-                      m.from_user_id === payload.new.from_user_id),
+                      m.message === newMsg.message &&
+                      m.from_user_id === newMsg.from_user_id),
                 )
               ) {
                 return prev.map((m) =>
                   m.optimistic &&
-                  m.message === payload.new.message &&
-                  m.from_user_id === payload.new.from_user_id
-                    ? payload.new
+                  m.message === newMsg.message &&
+                  m.from_user_id === newMsg.from_user_id
+                    ? newMsg
                     : m,
                 );
               }
 
-              return [...prev, payload.new];
+              return [...prev, newMsg];
             });
+
+            // 🔥 CRITICAL: auto-mark seen if this is partner's message
+            if (newMsg.from_user_id !== myUserId && !newMsg.seen_at) {
+              console.log("AUTO MARK SEEN:", newMsg.id);
+
+              await supabase
+                .from("match_messages")
+                .update({ seen_at: new Date().toISOString() })
+                .eq("id", newMsg.id)
+                .is("seen_at", null);
+            }
           },
         )
 
