@@ -182,8 +182,6 @@ export default function HomeScreen() {
     restoreAvailability();
   }, [location]);
 
- 
-
   // Fetch nearby users
   const fetchNearby = async () => {
     if (!location) return;
@@ -209,6 +207,35 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchNearby();
   }, [location]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!available || !location) return;
+
+      // Initial load when screen gains focus
+      fetchNearby();
+
+      const channel = supabase
+        .channel("availability-realtime")
+        .on(
+          "postgres_changes",
+          {
+            event: "*", // INSERT, UPDATE, DELETE
+            schema: "public",
+            table: "availability",
+          },
+          () => {
+            // 🔥 Someone toggled availability → refresh nearby list
+            fetchNearby();
+          },
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }, [available, location, radiusKm]),
+  );
 
   // Toggle availability
   const handleAvailabilityChange = async (value: boolean) => {
