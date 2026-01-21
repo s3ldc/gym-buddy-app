@@ -210,9 +210,9 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!available || !location) return;
+      if (!location) return;
 
-      // Initial load when screen gains focus
+      // Always load once when screen focused
       fetchNearby();
 
       const channel = supabase
@@ -220,13 +220,17 @@ export default function HomeScreen() {
         .on(
           "postgres_changes",
           {
-            event: "*", // INSERT, UPDATE, DELETE
+            event: "*",
             schema: "public",
             table: "availability",
           },
-          () => {
-            // 🔥 Someone toggled availability → refresh nearby list
-            fetchNearby();
+          (payload) => {
+            // console.log("AVAILABILITY CHANGED:", payload.eventType);
+
+            // 🔥 Only refresh if I am currently available
+            if (available) {
+              fetchNearby();
+            }
           },
         )
         .subscribe();
@@ -234,7 +238,7 @@ export default function HomeScreen() {
       return () => {
         supabase.removeChannel(channel);
       };
-    }, [available, location, radiusKm]),
+    }, [location, available, radiusKm]),
   );
 
   // Toggle availability
