@@ -135,6 +135,32 @@ export default function MatchDetailScreen() {
 
       markMessagesSeen(pingId);
 
+      const matchStatusChannel = supabase
+        .channel(`match-status-${pingId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "pings",
+            filter: `id=eq.${pingId}`,
+          },
+          (payload) => {
+            const newRow = payload.new;
+
+            if (newRow.status === "ended") {
+              // console.log("MATCH ENDED BY PARTNER, REDIRECTING");
+
+              // Navigate both users out of match screen
+              router.replace({
+                pathname: "/",
+                params: { refresh: Date.now().toString() },
+              });
+            }
+          },
+        )
+        .subscribe();
+
       const channel = supabase
         .channel(`match-events-${pingId}`)
         .on(
@@ -256,6 +282,7 @@ export default function MatchDetailScreen() {
       return () => {
         supabase.removeChannel(channel);
         supabase.removeChannel(chatChannelRef.current);
+        supabase.removeChannel(matchStatusChannel);
       };
     }, [pingId, myUserId]),
   );
