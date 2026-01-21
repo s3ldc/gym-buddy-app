@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { getMyPastMatches } from "../../services/pings";
 import { getLastMessageForPing } from "../../services/matchMessages";
+import { Pressable } from "react-native";
+import { router } from "expo-router";
 
 export default function HistoryScreen() {
   const [matches, setMatches] = useState<any[]>([]);
@@ -73,22 +75,27 @@ export default function HistoryScreen() {
         const shortPartnerId = partnerId.slice(-6);
 
         return (
-          <View key={row.id} style={styles.card}>
-            <Text style={styles.partner}>Partner: ...{shortPartnerId}</Text>
+          <Pressable
+            key={row.id}
+            onPress={() => router.push(`/history/${row.id}`)}
+          >
+            <View style={styles.card}>
+              <Text style={styles.partner}>Partner: ...{shortPartnerId}</Text>
 
-            <Text style={styles.meta}>
-              Ended at:{" "}
-              {row.ended_at
-                ? new Date(row.ended_at).toLocaleString()
-                : "Unknown"}
-            </Text>
-
-            {row.lastMessage && (
-              <Text style={{ color: "#666", marginTop: 4 }} numberOfLines={1}>
-                {row.lastMessage.message}
+              <Text style={styles.meta}>
+                Ended at:{" "}
+                {row.ended_at
+                  ? new Date(row.ended_at).toLocaleString()
+                  : "Unknown"}
               </Text>
-            )}
-          </View>
+
+              {row.lastMessage && (
+                <Text style={{ color: "#666", marginTop: 4 }} numberOfLines={1}>
+                  {row.lastMessage.message}
+                </Text>
+              )}
+            </View>
+          </Pressable>
         );
       })}
     </ScrollView>
