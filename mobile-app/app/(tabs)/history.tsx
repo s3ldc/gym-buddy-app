@@ -81,6 +81,9 @@ export default function HistoryScreen() {
           >
             <View style={styles.card}>
               <Text style={styles.partner}>Partner: ...{shortPartnerId}</Text>
+              <Text style={styles.partner}>
+                {row.partnerProfile?.full_name || "Unknown user"}
+              </Text>
 
               <Text style={styles.meta}>
                 Ended at:{" "}
