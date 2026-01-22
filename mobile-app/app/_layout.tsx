@@ -5,8 +5,9 @@ import { supabase } from "../lib/supabase";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function RootLayout() {
-  const [session, setSession] = useState<any>(undefined); // undefined = not loaded yet
+  const [session, setSession] = useState<any>(undefined);
   const [hasSeenWelcome, setHasSeenWelcome] = useState<boolean | null>(null);
+  const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,6 +20,20 @@ export default function RootLayout() {
       } = await supabase.auth.getSession();
 
       setSession(session);
+
+      if (session) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, age_range")
+          .eq("id", session.user.id)
+          .single();
+
+        const complete = !!profile?.full_name && !!profile?.age_range;
+        setProfileComplete(complete);
+      } else {
+        setProfileComplete(null);
+      }
+
       setLoading(false);
     };
 
@@ -26,37 +41,56 @@ export default function RootLayout() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
+
+      if (session) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, age_range")
+          .eq("id", session.user.id)
+          .single();
+
+        const complete = !!profile?.full_name && !!profile?.age_range;
+        setProfileComplete(complete);
+      } else {
+        setProfileComplete(null);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // 🔒 CRITICAL: block rendering until BOTH are ready
-  if (loading || hasSeenWelcome === null) {
-    return null; // or splash loader
+  // 🔒 Block rendering until all gates are ready
+  if (loading || hasSeenWelcome === null || session === undefined) {
+    return null;
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack screenOptions={{ headerShown: false }}>
-        {/* Welcome: only if first time */}
+        {/* 1. Welcome */}
         <Stack.Screen
           name="welcome"
           redirect={hasSeenWelcome}
         />
 
-        {/* Login: only if seen welcome AND not logged in */}
+        {/* 2. Login */}
         <Stack.Screen
           name="login"
           redirect={!hasSeenWelcome || !!session}
         />
 
-        {/* App: only if logged in */}
+        {/* 3. Profile Setup */}
+        <Stack.Screen
+          name="profile_setup"
+          redirect={!session || profileComplete === true}
+        />
+
+        {/* 4. Main App */}
         <Stack.Screen
           name="(tabs)"
-          redirect={!session}
+          redirect={!session || profileComplete === false}
         />
       </Stack>
     </GestureHandlerRootView>
