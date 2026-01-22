@@ -15,7 +15,7 @@ export default function ProfileSetupScreen() {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ FIXED
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
@@ -46,16 +46,20 @@ export default function ProfileSetupScreen() {
       // 🔹 Upload photo if selected
       if (image) {
         const response = await fetch(image);
-        const blob = await response.blob();
+        const arrayBuffer = await response.arrayBuffer();
 
-        const filePath = `${session.user.id}.jpg`;
+        const fileExt = image.split(".").pop() || "jpg";
+        const filePath = `${session.user.id}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("avatars")
-          .upload(filePath, blob, { upsert: true });
+          .upload(filePath, arrayBuffer, {
+            contentType: "image/jpeg",
+            upsert: true,
+          });
 
         if (uploadError) {
-          console.error(uploadError);
+          console.error("UPLOAD ERROR:", uploadError);
           alert("Failed to upload image");
           return;
         }
@@ -68,12 +72,15 @@ export default function ProfileSetupScreen() {
       }
 
       // 🔹 Save profile row
-      const { error } = await supabase.from("profiles").update({
-        full_name: fullName,
-        age_range: ageRange,
-        gender,
-        avatar_url: avatarUrl,
-      }).eq("id", session.user.id);
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: fullName,
+          age_range: ageRange,
+          gender,
+          avatar_url: avatarUrl,
+        })
+        .eq("id", session.user.id);
 
       if (error) {
         console.error(error);
@@ -120,10 +127,7 @@ export default function ProfileSetupScreen() {
           <Text
             key={range}
             onPress={() => setAgeRange(range)}
-            style={[
-              styles.chip,
-              ageRange === range && styles.chipSelected,
-            ]}
+            style={[styles.chip, ageRange === range && styles.chipSelected]}
           >
             {range}
           </Text>
@@ -137,10 +141,7 @@ export default function ProfileSetupScreen() {
           <Text
             key={g}
             onPress={() => setGender(g)}
-            style={[
-              styles.chip,
-              gender === g && styles.chipSelected,
-            ]}
+            style={[styles.chip, gender === g && styles.chipSelected]}
           >
             {g}
           </Text>
