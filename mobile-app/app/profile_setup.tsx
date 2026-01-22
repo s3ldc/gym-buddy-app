@@ -88,7 +88,10 @@ export default function ProfileSetupScreen() {
         return;
       }
 
-      router.replace("/(tabs)");
+      router.replace({
+        pathname: "/",
+        params: { refresh: Date.now().toString() },
+      });
     } finally {
       setSaving(false);
     }

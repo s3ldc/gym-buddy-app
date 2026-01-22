@@ -3,12 +3,36 @@ import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../lib/supabase";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useLocalSearchParams } from "expo-router";
 
 export default function RootLayout() {
-  const [session, setSession] = useState<any>(undefined);
+  const [session, setSession] = useState<any>(undefined); // undefined = not loaded yet
   const [hasSeenWelcome, setHasSeenWelcome] = useState<boolean | null>(null);
-  const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
+  const [profileComplete, setProfileComplete] = useState<boolean | undefined>(
+    undefined,
+  );
   const [loading, setLoading] = useState(true);
+  const params = useLocalSearchParams();
+
+  const checkProfile = async (session: any) => {
+    if (!session) {
+      setProfileComplete(undefined);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("full_name, age_range")
+      .eq("id", session.user.id)
+      .single();
+
+    if (error || !data) {
+      setProfileComplete(false);
+    } else {
+      const completed = !!(data.full_name && data.age_range);
+      setProfileComplete(completed);
+    }
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -20,19 +44,7 @@ export default function RootLayout() {
       } = await supabase.auth.getSession();
 
       setSession(session);
-
-      if (session) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, age_range")
-          .eq("id", session.user.id)
-          .single();
-
-        const complete = !!profile?.full_name && !!profile?.age_range;
-        setProfileComplete(complete);
-      } else {
-        setProfileComplete(null);
-      }
+      await checkProfile(session);
 
       setLoading(false);
     };
@@ -43,51 +55,37 @@ export default function RootLayout() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
-
-      if (session) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, age_range")
-          .eq("id", session.user.id)
-          .single();
-
-        const complete = !!profile?.full_name && !!profile?.age_range;
-        setProfileComplete(complete);
-      } else {
-        setProfileComplete(null);
-      }
+      await checkProfile(session);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [params?.refresh]); // 🔥 THIS IS THE KEY
 
-  // 🔒 Block rendering until all gates are ready
-  if (loading || hasSeenWelcome === null || session === undefined) {
+  // 🔒 Hard gate — do not render until all routing state is resolved
+  if (
+    loading ||
+    hasSeenWelcome === null ||
+    (session && profileComplete === undefined)
+  ) {
     return null;
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack screenOptions={{ headerShown: false }}>
-        {/* 1. Welcome */}
-        <Stack.Screen
-          name="welcome"
-          redirect={hasSeenWelcome}
-        />
+        {/* Welcome: only if first time */}
+        <Stack.Screen name="welcome" redirect={hasSeenWelcome} />
 
-        {/* 2. Login */}
-        <Stack.Screen
-          name="login"
-          redirect={!hasSeenWelcome || !!session}
-        />
+        {/* Login: only if seen welcome AND not logged in */}
+        <Stack.Screen name="login" redirect={!hasSeenWelcome || !!session} />
 
-        {/* 3. Profile Setup */}
+        {/* Profile setup: only if logged in but profile NOT completed */}
         <Stack.Screen
           name="profile_setup"
           redirect={!session || profileComplete === true}
         />
 
-        {/* 4. Main App */}
+        {/* Main app: only if logged in AND profile completed */}
         <Stack.Screen
           name="(tabs)"
           redirect={!session || profileComplete === false}
