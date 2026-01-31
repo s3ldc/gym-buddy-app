@@ -3,20 +3,16 @@ import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../lib/supabase";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useLocalSearchParams } from "expo-router";
 
 export default function RootLayout() {
-  const [session, setSession] = useState<any>(undefined); // undefined = not loaded yet
+  const [session, setSession] = useState<any | null>(null);
   const [hasSeenWelcome, setHasSeenWelcome] = useState<boolean | null>(null);
-  const [profileComplete, setProfileComplete] = useState<boolean | undefined>(
-    undefined,
-  );
+  const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
-  const params = useLocalSearchParams();
 
   const checkProfile = async (session: any) => {
     if (!session) {
-      setProfileComplete(undefined);
+      setProfileComplete(null);
       return;
     }
 
@@ -59,13 +55,13 @@ export default function RootLayout() {
     });
 
     return () => subscription.unsubscribe();
-  }, [params?.refresh]); // 🔥 THIS IS THE KEY
+  }, []);
 
-  // 🔒 Hard gate — do not render until all routing state is resolved
+  // 🔒 Hard gate
   if (
     loading ||
     hasSeenWelcome === null ||
-    (session && profileComplete === undefined)
+    (session && profileComplete === null)
   ) {
     return null;
   }
